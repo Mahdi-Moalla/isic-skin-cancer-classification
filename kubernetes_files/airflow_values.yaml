@@ -1,0 +1,4 @@
+dags:
+  gitSync:
+    repo: https://github.com/Mahdi-Moalla/isic-skin-cancer-classification
+    subPath: "airflow_dags"
