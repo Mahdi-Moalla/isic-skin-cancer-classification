@@ -1,4 +1,25 @@
+webserver:
+  service:
+    type: ClusterIP
+    ports:
+      - name: airflow-ui
+        port: 8080
+        targetPort: 8080
+
 dags:
   gitSync:
+    enabled: true
     repo: https://github.com/Mahdi-Moalla/isic-skin-cancer-classification
+    branch: main
+    ref: main
+    depth: 2
     subPath: "airflow_dags"
+    resources:
+      limits:
+       cpu: 500m
+       memory: 512Mi
+      requests:
+       cpu: 100m
+       memory: 128Mi
+
+webserverSecretKey: 6cf3054db3e2591a877e022e06b55d64

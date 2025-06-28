@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cuda-samples
+  namespace: isic-skin-cancer-classification
+spec:
+  restartPolicy: OnFailure
+  containers:
+    - name: base
+      image: ubuntu
+      command: ["nvidia-smi"]
+      resources:
+        limits:
+          nvidia.com/gpu: 1
