@@ -1,12 +1,15 @@
-from airflow.sdk import dag, task
+from airflow.decorators import dag, task
 
 @dag()
-def isic_train_model_dag():
-
+def train_model_pipeline():
     @task()
     def init_pipeline():
-        print('hello')
+        print('init_pipeline')
+        return 1
+    @task()
+    def train_model(x):
+        print(f'train_model {x}')
 
-    init_pipeline()
+    train_model(init_pipeline())
 
-isic_train_model_dag()
+train_model_pipeline()
