@@ -38,18 +38,18 @@ def main(input_csv='./train-metadata.csv',
     
 
 
-    train_data.to_csv(osp.join(output_path,'train_metadata.csv'), index=False)
-    test_data.to_csv(osp.join(output_path,'test_metadata.csv'), index=False)
+    train_data.to_csv(osp.join(output_path,'train-metadata.csv'), index=False)
+    test_data.to_csv(osp.join(output_path,'test-metadata.csv'), index=False)
 
 
     with  h5py.File(input_hdf5,'r') as f_in:
 
-        with h5py.File(osp.join(output_path,'train_image.hdf5'), 'w') as f_out:
+        with h5py.File(osp.join(output_path,'train-image.hdf5'), 'w') as f_out:
             #from IPython import embed; embed(colors='Linux')
             for isic_id in tqdm(train_data['isic_id'].tolist()):
                 f_out[isic_id]=f_in[isic_id][...]
         
-        with h5py.File(osp.join(output_path,'test_image.hdf5'), 'w') as f_out:
+        with h5py.File(osp.join(output_path,'test-image.hdf5'), 'w') as f_out:
             #from IPython import embed; embed(colors='Linux')
             for isic_id in tqdm(test_data['isic_id'].tolist()):
                 f_out[isic_id]=f_in[isic_id][...]

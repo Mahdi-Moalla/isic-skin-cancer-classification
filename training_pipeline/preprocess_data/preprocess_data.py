@@ -30,20 +30,20 @@ def preprocess_data(input_data_path='../../project_data_prepare/split_dataset/',
 
     os.makedirs(preprocessed_data_path, exist_ok=True)
 
-    shutil.copy(osp.join(input_data_path,'train_metadata.csv'),
+    shutil.copy(osp.join(input_data_path,'train-metadata.csv'),
                 preprocessed_data_path)
-    shutil.copy(osp.join(input_data_path,'test_metadata.csv'),
+    shutil.copy(osp.join(input_data_path,'test-metadata.csv'),
                 preprocessed_data_path)
     
 
     for split  in ['train','test']:
-        with h5py.File(osp.join(input_data_path,f'{split}_image.hdf5'),'r') as f_in:
-            with h5py.File(osp.join(preprocessed_data_path,f'{split}_image.hdf5'),'w') as f_out:
+        with h5py.File(osp.join(input_data_path,f'{split}-image.hdf5'),'r') as f_in:
+            with h5py.File(osp.join(preprocessed_data_path,f'{split}-image.hdf5'),'w') as f_out:
                 for isic_id in tqdm(f_in.keys()):
                     pil_image=Image.open( io.BytesIO( f_in[isic_id][()]))
                     image_np=np.array(pil_image)
                     preprocessed_image_np=preprocess_transform(image=image_np)['image']
-                    f_out[isic_id]=preprocessed_image_np[...]
+                    f_out[isic_id]=preprocessed_image_np[...].transpose(2,0,1)
 
     #from IPython import embed; embed(colors='Linux')
 
