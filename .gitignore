@@ -194,3 +194,14 @@ cython_debug/
 .cursorindexingignore
 
 airflow-1.16.0.tgz
+
+project_data_prepare/*.hdf5
+project_data_prepare/*.zip
+project_data_prepare/*.csv
+
+project_data_prepare/split_dataset/*.csv
+project_data_prepare/split_dataset/*.hdf5
+
+training_pipeline/preprocess_data/preprocessed_data/*.hdf5
+training_pipeline/preprocess_data/preprocessed_data/*.npy
+training_pipeline/preprocess_data/preprocessed_data/*.csv

@@ -1,0 +1,68 @@
+import  os
+import os.path as osp
+import shutil
+
+import numpy as np
+import pandas as pd
+import h5py
+from sklearn.model_selection import train_test_split
+
+import  fire
+
+from tqdm import tqdm
+
+
+def main(input_csv='./train-metadata.csv',
+         input_hdf5='./train-image.hdf5',
+         output_path='./split_dataset/',
+         random_seed=1):
+    if osp.exists(output_path):
+        if osp.isdir(output_path):
+            pass
+            #assert len(os.listdir(output_path))==0, 'output path is not empty'
+        else:
+            raise Exception('invalid output path')
+    else:
+        os.makedirs(output_path)
+
+    np.random.seed(random_seed)
+
+    csv_data=pd.read_csv(input_csv)
+    #print(csv_data.head())
+
+    train_data, test_data, _, _ =train_test_split(csv_data,
+                                                  csv_data['target'],
+                                                  test_size=1/8,
+                                                  random_state=random_seed,
+                                                  stratify=csv_data['target'])
+    
+
+
+    train_data.to_csv(osp.join(output_path,'train_metadata.csv'), index=False)
+    test_data.to_csv(osp.join(output_path,'test_metadata.csv'), index=False)
+
+
+    with  h5py.File(input_hdf5,'r') as f_in:
+
+        with h5py.File(osp.join(output_path,'train_image.hdf5'), 'w') as f_out:
+            #from IPython import embed; embed(colors='Linux')
+            for isic_id in tqdm(train_data['isic_id'].tolist()):
+                f_out[isic_id]=f_in[isic_id][...]
+        
+        with h5py.File(osp.join(output_path,'test_image.hdf5'), 'w') as f_out:
+            #from IPython import embed; embed(colors='Linux')
+            for isic_id in tqdm(test_data['isic_id'].tolist()):
+                f_out[isic_id]=f_in[isic_id][...]
+
+
+
+
+
+
+
+
+
+if __name__=='__main__':
+    fire.Fire(main)
+    
+

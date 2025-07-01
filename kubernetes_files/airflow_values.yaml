@@ -23,3 +23,11 @@ dags:
        memory: 128Mi
 
 webserverSecretKey: 6cf3054db3e2591a877e022e06b55d64
+
+workers:
+  persistence:
+    size: 10Gi
+
+logs:
+  persistence:
+    size: 10Gi
