@@ -5,6 +5,13 @@ webserver:
       - name: airflow-ui
         port: 8080
         targetPort: 8080
+  #resources:
+  #  limits:
+  #    cpu: 500m
+  #    memory: 128Mi
+  #  requests:
+  #    cpu: 500m
+  #    memory: 128Mi
 
 dags:
   gitSync:

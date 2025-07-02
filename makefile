@@ -6,7 +6,7 @@ kube_config = create
 
 trainer_docker_image:=nvcr_pytorch_tensorrt_mod:latest
 preprocessor_docker_image:=isic_preprocessor:latest
-ubuntu_toolset_docker_image:=localhost:32000/ubuntu_toolset:latest
+ubuntu_toolset_docker_image:=ubuntu_toolset:latest
 
 init-microk8s:
 	sudo snap install microk8s --classic --channel=1.32
@@ -27,8 +27,10 @@ setup-cluster:
 	microk8s start
 	microk8s status --wait-ready
 	microk8s enable hostpath-storage
-	microk8s enable nvidia
-	microk8s enable registry:size=50Gi
+	microk8s  enable dns
+	#microk8s enable nvidia
+	#microk8s enable dashboard
+	#microk8s enable registry:size=50Gi
 
 check-gpu-support:	
 	microk8s kubectl logs -n gpu-operator-resources -lapp=nvidia-operator-validator -c nvidia-operator-validator
@@ -37,29 +39,32 @@ init-namespace:
 	kubectl create ns ${K8S_NAMESPACE}
 	kubectl config set-context --current --namespace=${K8S_NAMESPACE}
 
+expose-dashboard:
+	microk8s kubectl create token default
+	microk8s kubectl port-forward -n kube-system service/kubernetes-dashboard 10443:443
+
+
 delete-cluster:
 	sudo microk8s reset --destroy-storage
 	microk8s stop
 
-microk8s-init-images-1:
+microk8s-init-images:
 
 	bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
-	docker push ${ubuntu_toolset_docker_image}
-	microk8s ctr images pull ${ubuntu_toolset_docker_image} 
-	#docker save -o ubuntu_toolset_docker_image.tar ${ubuntu_toolset_docker_image} 
-	#rm ubuntu_toolset_docker_image.tar
+	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image} 
+	microk8s images import < ubuntu_toolset_docker_image.tar
+	rm ubuntu_toolset_docker_image.tar
 
-	#bash training_pipeline/preprocess_data/build_preprocessor_image.sh  ${preprocessor_docker_image}
-	#docker save ${preprocessor_docker_image} > preprocessor_docker_image.tar
-	#microk8s images import < preprocessor_docker_image.tar
-	#rm preprocessor_docker_image.tar
-	
-	#docker pull nvcr.io/nvidia/pytorch:25.05-py3
-	#bash training_pipeline/trainer/build_trainer_image.sh  ${trainer_docker_image}
-	#docker save ${trainer_docker_image} > trainer_docker_image.tar
-	#microk8s images import < trainer_docker_image.tar
-	#rm trainer_docker_image.tar
+	bash training_pipeline/preprocess_data/build_preprocessor_image.sh ${preprocessor_docker_image}
+	docker save -o preprocessor_docker_image.tar  ${preprocessor_docker_image} 
+	microk8s images import < preprocessor_docker_image.tar
+	rm preprocessor_docker_image.tar
 
+	docker pull nvcr.io/nvidia/pytorch:25.05-py3
+	bash training_pipeline/trainer/build_trainer_image.sh ${trainer_docker_image}
+	docker save -o trainer_docker_image.tar  ${trainer_docker_image} 
+	microk8s images import < trainer_docker_image.tar
+	rm trainer_docker_image.tar
 
 	docker pull apache/airflow:2.10.5
 	docker pull burakince/mlflow:3.1.1

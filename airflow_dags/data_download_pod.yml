@@ -7,13 +7,16 @@ spec:
   restartPolicy: OnFailure
   containers:
     - name: base
-      image: localhost:32000/ubuntu_toolset:latest
-      command: ["bash"]
+      image: ubuntu_toolset:latest
+      imagePullPolicy: Never
+      command: ["/bin/sh"]
       args:
         - -c
         - >-
-            echo hello1
-            sleep 10000
+            echo hello1 &&
+            echo hello2 &&
+            sleep 1000 
+      
       volumeMounts:
         - mountPath: "/workspace/data/"
           name: training-pipeline-volume
