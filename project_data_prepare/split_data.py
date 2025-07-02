@@ -18,8 +18,7 @@ def main(input_csv='./train-metadata.csv',
          random_seed=1):
     if osp.exists(output_path):
         if osp.isdir(output_path):
-            pass
-            #assert len(os.listdir(output_path))==0, 'output path is not empty'
+            assert len(os.listdir(output_path))==0, 'output path is not empty'
         else:
             raise Exception('invalid output path')
     else:
@@ -53,13 +52,6 @@ def main(input_csv='./train-metadata.csv',
             #from IPython import embed; embed(colors='Linux')
             for isic_id in tqdm(test_data['isic_id'].tolist()):
                 f_out[isic_id]=f_in[isic_id][...]
-
-
-
-
-
-
-
 
 
 if __name__=='__main__':

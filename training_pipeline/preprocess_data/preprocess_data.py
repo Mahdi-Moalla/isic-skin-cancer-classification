@@ -28,7 +28,14 @@ preprocess_transform=A.Compose([
 def preprocess_data(input_data_path='../../project_data_prepare/split_dataset/',
                     preprocessed_data_path='./preprocessed_data/'):
 
-    os.makedirs(preprocessed_data_path, exist_ok=True)
+    if osp.exists(preprocessed_data_path):
+        if osp.isdir(preprocessed_data_path):
+            assert len(os.listdir(preprocessed_data_path))==0, 'output path is not empty'
+        else:
+            raise Exception('invalid output path')
+    else:
+        os.makedirs(preprocessed_data_path)
+
 
     shutil.copy(osp.join(input_data_path,'train-metadata.csv'),
                 preprocessed_data_path)

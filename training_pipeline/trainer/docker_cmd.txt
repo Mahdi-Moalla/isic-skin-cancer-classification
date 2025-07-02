@@ -1,6 +1,8 @@
 docker run -it --runtime=nvidia --gpus all\
      --ipc=host --ulimit memlock=-1\
-     --ulimit stack=67108864 -p 8888:8888\
+     --ulimit stack=67108864\
      -v ../preprocess_data/preprocessed_data/:/workspace/data\
      -v .:/workspace/code\
-      nvcr.io/nvidia/pytorch:25.05-py3 bash
+     nvcr.io/nvidia/pytorch:25.05-py3 bash code/train.sh
+
+-p 8888:8888

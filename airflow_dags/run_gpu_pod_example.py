@@ -5,8 +5,6 @@ from airflow import DAG
 from airflow.decorators import task
 
 from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
-from airflow.providers.cncf.kubernetes.secret import Secret
-from airflow.operators.bash import BashOperator
 
 from airflow.providers.cncf.kubernetes.operators.resource import (
     KubernetesCreateResourceOperator,
@@ -19,35 +17,38 @@ from pathlib import Path
 import os
 import os.path as osp
 
-# docker run -it --runtime=nvidia --gpus all\
-#      --ipc=host --ulimit memlock=-1\
-#      --ulimit stack=67108864 -p 8888:8888\
-#       nvcr.io/nvidia/pytorch:25.05-py3 python -m http.server --directory /
-# nvidia-smi -l
 
-
-pod_yaml_def="""
+pvc_conf = """
 apiVersion: v1
-kind: Pod
+kind: PersistentVolumeClaim
 metadata:
-  name: cuda-samples
+  name: test-volume
   namespace: isic-skin-cancer-classification
 spec:
-  restartPolicy: OnFailure
-  containers:
-    - name: base     ## main container name must be base
-      image: ubuntu
-      command: ["nvidia-smi","-l"]
-      resources:
-        limits:
-          nvidia.com/gpu: 1
+  accessModes: [ReadWriteOnce]
+  resources: { requests: { storage: 1Gi } }
 """
 
 
+with DAG(
+    dag_id="create_pvc_example"
+) as dag:
+    t1 = KubernetesCreateResourceOperator(
+        task_id="create_pvc",
+        yaml_conf=pvc_conf,
+    )
+
+with DAG(
+    dag_id="delete_pvc_example"
+) as dag:
+    t2 = KubernetesDeleteResourceOperator(
+        task_id="delete_pvc",
+        yaml_conf=pvc_conf,
+    )
 
 
 with DAG(
-    dag_id="gpu_dag_example"
+    dag_id="gpu_pod_xcom_dag_example"
 ) as dag:
     script_path=str(Path(__file__).parent.resolve())
     k = KubernetesPodOperator(
@@ -59,7 +60,6 @@ with DAG(
         task_id="task",
     )
 
-    
 
     # https://github.com/apache/airflow/discussions/34033
     write_xcom_2 = KubernetesPodOperator(
@@ -93,32 +93,6 @@ with DAG(
 
         print(os.getenv('XCOM_DATA'))
 
-    
-
 
     execute_in_k8s_pod_pull_instance = execute_in_k8s_pod_pull()
     write_xcom_2 >> execute_in_k8s_pod_pull_instance
-
-
-
-    write_xcom = KubernetesPodOperator(
-        namespace="isic-skin-cancer-classification",
-        image="alpine",
-        cmds=["sh", "-c", "mkdir -p /airflow/xcom/;echo '[1,2,3,4]' > /airflow/xcom/return.json"],
-        name="write-xcom",
-        do_xcom_push=True,
-        on_finish_action="delete_pod",
-        in_cluster=True,
-        task_id="write-xcom",
-        get_logs=True,
-    )
-
-    pod_task_xcom_result = BashOperator(
-        bash_command="echo \"{{ task_instance.xcom_pull('write-xcom')[0] }}\"",
-        task_id="pod_task_xcom_result",
-    )
-
-    write_xcom >> pod_task_xcom_result
-
-    
-    
