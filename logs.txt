@@ -1,0 +1,18 @@
+NOTES:
+Thank you for installing Apache Airflow 2.10.5!
+
+Your release is named airflow-service.
+You can now access your dashboard(s) by executing the following command(s) and visiting the corresponding port at localhost in your browser:
+
+Airflow Webserver:     kubectl port-forward svc/airflow-service-webserver 8080:8080 --namespace isic-skin-cancer-classification
+Default Webserver (Airflow UI) Login credentials:
+    username: admin
+    password: admin
+Default Postgres connection credentials:
+    username: postgres
+    password: postgres
+    port: 5432
+
+You can get Fernet Key value by running the following:
+
+    echo Fernet Key: $(kubectl get secret --namespace isic-skin-cancer-classification airflow-service-fernet-key -o jsonpath="{.data.fernet-key}" | base64 --decode)

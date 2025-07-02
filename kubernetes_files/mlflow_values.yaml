@@ -1,0 +1,43 @@
+
+strategy:
+  type: Recreate
+
+extraVolumes:
+  - name: mlflow-data-volume
+    persistentVolumeClaim:
+      claimName: mlflow-data-pvc
+  - name: mlflow-artifacts-volume
+    persistentVolumeClaim:
+      claimName: mlflow-artifacts-pvc
+
+extraVolumeMounts:
+  - name: mlflow-data-volume
+    mountPath: /mlflow/data
+  - name: mlflow-artifacts-volume
+    mountPath: /mlflow/artifacts
+
+artifactRoot:
+  proxiedArtifactStorage: true
+  defaultArtifactsDestination: "/mlflow/artifacts/"
+
+backendStore:
+  databaseMigration: false
+  defaultSqlitePath: "/mlflow/data/mlflow.db"
+  #postgres:
+  #  enabled: true
+  #  host: "airflow-service-postgresql"
+  #  port: 5432
+  #  database: "mlflow_db"
+  #  user: "mlflow_user"
+  #  password: "mlflow_pass"
+
+ingress:
+  enabled: true
+
+service:
+  port: 5000
+
+auth:
+  enabled: false
+  #adminUsername: "admin"
+  #adminPassword: "admin123admin"

@@ -1,7 +1,12 @@
 K8S_NAMESPACE:=isic-skin-cancer-classification
 CLUSTER_NAME:=isic-cluster
 AIRFLOW_NAME:=airflow-service
+MLFLOW_NAME:=mlflow-service
 kube_config = create
+
+trainer_docker_image:=nvcr_pytorch_tensorrt_mod
+preprocessor_docker_image:=isic_preprocessor
+ubuntu_toolset_docker_image:=ubuntu_toolset
 
 init-microk8s:
 	sudo snap install microk8s --classic --channel=1.32
@@ -18,39 +23,53 @@ else ifeq ($(kube_config), create)
 	microk8s config > ~/.kube/config
 endif
 
-create-cluster:
+setup-cluster:
 	microk8s start
 	microk8s status --wait-ready
 	microk8s enable hostpath-storage
-
-enable-gpu-support: create-cluster
 	microk8s enable nvidia
-	microk8s kubectl logs -n gpu-operator-resources -lapp=nvidia-operator-validator -c nvidia-operator-validator
-	
-init-namespace: enable-gpu-support
-	kubectl create ns ${K8S_NAMESPACE}
-set-context: init-namespace
-	kubectl config set-context --current --namespace=${K8S_NAMESPACE}
 
-setup-cluster: set-context
-	echo "cluster setup finished"
+check-gpu-support:	
+	microk8s kubectl logs -n gpu-operator-resources -lapp=nvidia-operator-validator -c nvidia-operator-validator
+
+init-namespace:
+	kubectl create ns ${K8S_NAMESPACE}
+	kubectl config set-context --current --namespace=${K8S_NAMESPACE}
 
 delete-cluster:
 	sudo microk8s reset --destroy-storage
 	microk8s stop
 
-check-gpu-support:	
-	microk8s kubectl logs -n gpu-operator-resources -lapp=nvidia-operator-validator -c nvidia-operator-validator
-
-
 microk8s-init-images:
+	bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
+	docker save ${ubuntu_toolset_docker_image} > ubuntu_toolset_docker_image.tar
+	microk8s images import < ubuntu_toolset_docker_image.tar
+	rm ubuntu_toolset_docker_image.tar
+	
+	docker pull nvcr.io/nvidia/pytorch:25.05-py3
+	bash training_pipeline/trainer/build_trainer_image.sh  ${trainer_docker_image}
+	docker save ${trainer_docker_image} > trainer_docker_image.tar
+	microk8s images import < trainer_docker_image.tar
+	rm trainer_docker_image.tar
+
+	bash training_pipeline/preprocess_data/build_preprocessor_image.sh  ${preprocessor_docker_image}
+	docker save ${preprocessor_docker_image} > preprocessor_docker_image.tar
+	microk8s images import < preprocessor_docker_image.tar
+	rm preprocessor_docker_image.tar
+
 	docker pull apache/airflow:2.10.5
+	docker pull burakince/mlflow:3.1.1
 	docker pull docker.io/bitnami/postgresql:16.1.0-debian-11-r15
+
 	docker save apache/airflow:2.10.5 > airflow.tar
 	docker save docker.io/bitnami/postgresql:16.1.0-debian-11-r15 > postgresql.tar
+	docker save burakince/mlflow:3.1.1 > mlflow.tar
+
 	microk8s images import < airflow.tar
 	microk8s images import < postgresql.tar
-	rm airflow.tar postgresql.tar
+	microk8s images import < mlflow.tar
+
+	rm airflow.tar postgresql.tar mlflow.tar
 
 init-airflow:
 	helm repo add apache-airflow https://airflow.apache.org
@@ -68,18 +87,21 @@ remove-airflow:
 	ps -C "kubectl port-forward --address 0.0.0.0 svc/airflow" -o pid= | xargs kill -9
 
 
+init-mlflow:
+	#bash create_db.sh ${K8S_NAMESPACE}	
+	kubectl apply -f kubernetes_files/mlflow_pvcs.yml
+	helm repo add community-charts https://community-charts.github.io/helm-charts
+	helm install ${MLFLOW_NAME} community-charts/mlflow\
+	 --namespace ${K8S_NAMESPACE}\
+	 -f kubernetes_files/mlflow_values.yaml\
+	 --version 1.3.0
+
+expose-mlflow:
+	kubectl port-forward --address 0.0.0.0 svc/${MLFLOW_NAME} 5000:5000 --namespace ${K8S_NAMESPACE} &
+
+remove-mlflow:
+	helm uninstall ${MLFLOW_NAME}
+	ps -C "kubectl port-forward --address 0.0.0.0 svc/mlflow" -o pid= | xargs kill -9
+	kubectl delete -f  kubernetes_files/mlflow_pvcs.yml
 
 
-init-nvidia-plugin:
-	docker pull nvcr.io/nvidia/k8s-device-plugin:v0.17.1
-	kind load docker-image nvcr.io/nvidia/k8s-device-plugin:v0.17.1\
-			 --name ${CLUSTER_NAME}
-	kubectl create -f https://raw.githubusercontent.com/NVIDIA/k8s-device-plugin/v0.17.1/deployments/static/nvidia-device-plugin.yml
-	
-init-nvidia-plugin-helm:
-	helm repo add nvdp https://nvidia.github.io/k8s-device-plugin
-	helm repo update
-	helm upgrade -i nvdp nvdp/nvidia-device-plugin \
-		--namespace nvidia-device-plugin \
-		--create-namespace \
-		--version 0.17.1

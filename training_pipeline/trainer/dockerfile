@@ -1,5 +1,7 @@
 # nvcr_pytorch_tensorrt_mod
 FROM nvcr.io/nvidia/pytorch:25.05-py3
 
-RUN pip install  --no-cache-dir  addict pytorch-lightning h5py flask gunicorn
+COPY requirements.txt .
+
+RUN pip install  --no-cache-dir  -r requirements.txt
 

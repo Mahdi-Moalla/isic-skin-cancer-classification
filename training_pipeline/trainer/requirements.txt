@@ -1,0 +1,7 @@
+addict==2.4.0
+fire==0.7.0
+h5py==3.14.0 
+pytorch-lightning==2.5.2
+flask==3.1.1
+gunicorn==23.0.0
+mlflow==3.1.1

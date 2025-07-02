@@ -301,7 +301,7 @@ if True:
         "lr_sceduler_params":{"mode":'min',
                               "factor":0.1,
                               "patience":5},
-        "n_fold": 3,
+        "n_fold": 2,
         "data_dir":"/workspace/data/",
         "checkpoints_dir":"/workspace/working/checkpoints/",
         "log_dir":"/workspace/working/logs/",

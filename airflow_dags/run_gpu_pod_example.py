@@ -31,23 +31,6 @@ spec:
 
 
 with DAG(
-    dag_id="create_pvc_example"
-) as dag:
-    t1 = KubernetesCreateResourceOperator(
-        task_id="create_pvc",
-        yaml_conf=pvc_conf,
-    )
-
-with DAG(
-    dag_id="delete_pvc_example"
-) as dag:
-    t2 = KubernetesDeleteResourceOperator(
-        task_id="delete_pvc",
-        yaml_conf=pvc_conf,
-    )
-
-
-with DAG(
     dag_id="gpu_pod_xcom_dag_example"
 ) as dag:
     script_path=str(Path(__file__).parent.resolve())
@@ -56,9 +39,21 @@ with DAG(
         name="gpu-pod",
         pod_template_dict=yaml.safe_load(
             Path(osp.join(
-                script_path,'gpu_pod.yml')).read_text()),
+                script_path,'gpu_pod_example.yml')).read_text()),
         task_id="task",
     )
+
+    t1 = KubernetesCreateResourceOperator(
+        task_id="create_pvc",
+        yaml_conf=pvc_conf,
+    )
+
+    t2 = KubernetesDeleteResourceOperator(
+        task_id="delete_pvc",
+        yaml_conf=pvc_conf,
+    )
+
+    t1 >> t2
 
 
     # https://github.com/apache/airflow/discussions/34033
