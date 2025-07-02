@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: data-download-pod
+  namespace: isic-skin-cancer-classification
+spec:
+  restartPolicy: OnFailure
+  containers:
+    - name: base
+      image: localhost:32000/ubuntu_toolset:latest
+      command: ["bash"]
+      args:
+        - -c
+        - >-
+            echo hello1
+            sleep 10000
+      volumeMounts:
+        - mountPath: "/workspace/data/"
+          name: training-pipeline-volume
+  volumes: ###
+    - name: training-pipeline-volume ###
+      persistentVolumeClaim: ###
+        claimName: traininig-pipeline-pvc ###
+

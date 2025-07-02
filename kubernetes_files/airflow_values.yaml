@@ -28,6 +28,11 @@ workers:
   persistence:
     size: 10Gi
 
+
+triggerer:
+  persistence:
+    size: 10Gi
+
 logs:
   persistence:
     size: 10Gi

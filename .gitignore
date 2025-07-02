@@ -205,3 +205,5 @@ project_data_prepare/split_dataset/*.hdf5
 training_pipeline/preprocess_data/preprocessed_data/*.hdf5
 training_pipeline/preprocess_data/preprocessed_data/*.npy
 training_pipeline/preprocess_data/preprocessed_data/*.csv
+
+*.tar
