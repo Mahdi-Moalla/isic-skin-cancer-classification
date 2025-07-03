@@ -49,13 +49,6 @@ delete-cluster:
 	microk8s stop
 
 
-microk8s-init-preprocessor-image:
-	bash training_pipeline/preprocess_data/build_preprocessor_image.sh ${preprocessor_docker_image}
-	docker save -o preprocessor_docker_image.tar  ${preprocessor_docker_image} 
-	microk8s images import < preprocessor_docker_image.tar
-	rm preprocessor_docker_image.tar
-
-
 microk8s-init-images:
 
 	bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
@@ -121,4 +114,5 @@ remove-mlflow:
 	ps -C "kubectl port-forward --address 0.0.0.0 svc/mlflow" -o pid= | xargs kill -9
 	kubectl delete -f  kubernetes_files/mlflow_pvcs.yml
 
-
+init-dataset-http-server:
+	bash project_data_prepare/http_serve.sh 9000 split_dataset/

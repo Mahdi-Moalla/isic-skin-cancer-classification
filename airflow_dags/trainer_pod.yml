@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: trainer-pod
+  namespace: isic-skin-cancer-classification
+spec:
+  restartPolicy: OnFailure
+  containers:
+    - name: base
+      image: nvcr_pytorch_tensorrt_mod:latest
+      imagePullPolicy: Never
+      env:
+        - name: code_repo
+          valueFrom:
+              configMapKeyRef:
+                name: training-pipeline-cfgmap
+                key: code_repo
+      
+        - name: preprocessed_dataset_folder
+          valueFrom:
+              configMapKeyRef:
+                name: training-pipeline-cfgmap
+                key: preprocessed_dataset_folder
+      resources:
+        limits:
+          nvidia.com/gpu: 1
+      command: ["bash"]
+      hostIPC: true
+      resources:
+      requests:
+        memory: "5Gi"
+        ephemeral-storage: "2Gi"
+      limits:
+        memory: "5Gi"
+        ephemeral-storage: "2Gi"
+      args:
+        - -c
+        - >-
+            nvidia-smi &&
+            git clone $code_repo repo_code &&
+            mkdir -p /workspace/data/work &&
+            cd repo_code/training_pipeline/trainer/ &&
+            python train.py /workspace/data/$(preprocessed_dataset_folder) /workspace/data/work
+            exit 1 ################
+
+      volumeMounts:
+        - mountPath: "/workspace/data"
+          name: training-pipeline-volume
+        - mountPath: /dev/shm
+          name: cache-volume
+  volumes: ###
+    - name: training-pipeline-volume ###
+      persistentVolumeClaim: ###
+        claimName: traininig-pipeline-pvc ###
+    - name: cache-volume
+      medium: Memory
+      sizeLimit: 256Mi

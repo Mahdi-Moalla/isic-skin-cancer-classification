@@ -31,9 +31,14 @@ spec:
 
 
 with DAG(
-    dag_id="gpu_pod_xcom_dag_example"
+    dag_id="gpu_pod_xcom_dag_example",
+    params={
+         "param1": 1,
+         "param2":  "abcdefgh"
+     },
 ) as dag:
     script_path=str(Path(__file__).parent.resolve())
+    '''
     k = KubernetesPodOperator(
         namespace="isic-skin-cancer-classification",
         name="gpu-pod",
@@ -54,6 +59,7 @@ with DAG(
     )
 
     t1 >> t2
+    '''
 
 
     # https://github.com/apache/airflow/discussions/34033

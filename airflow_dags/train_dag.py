@@ -73,7 +73,7 @@ def trigger_cleaner_dag(context):
                   run_id=f'cleaner_run_{str(datetime.datetime.now())}')
 
 with DAG(
-    dag_id="training_pipeline"#,
+    dag_id="training_pipeline"
     #on_failure_callback=trigger_cleaner_dag,
 ) as dag:
     dag_file_path=str(Path(__file__).parent.resolve())
@@ -124,15 +124,19 @@ with DAG(
         get_logs=True
     )
 
+    trainer = KubernetesPodOperator(
+        namespace=namespace,
+        name="trainer",
+        pod_template_dict=yaml.safe_load(
+            Path(osp.join(
+                dag_file_path,'trainer_pod.yml')).read_text()),
+        task_id="trainer",
+        on_finish_action="keep_pod",
+        get_logs=True
+    )
+
 
     resources_allocator_group() >> data_downloader
-    data_downloader >> data_preprocessor  
-    data_preprocessor >> resources_cleaner_group()
+    data_downloader >> data_preprocessor >> trainer  
+    trainer >> resources_cleaner_group()
     
-
-    
-
-
-
-
-
