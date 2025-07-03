@@ -8,6 +8,8 @@ trainer_docker_image:=nvcr_pytorch_tensorrt_mod:latest
 preprocessor_docker_image:=isic_preprocessor:latest
 ubuntu_toolset_docker_image:=ubuntu_toolset:latest
 
+#  https://discuss.kubernetes.io/t/microk8s-images-prune-utility-for-production-servers/15874
+
 init-microk8s:
 	sudo snap install microk8s --classic --channel=1.32
 	sudo usermod -a -G microk8s ${USER}
@@ -28,9 +30,7 @@ setup-cluster:
 	microk8s status --wait-ready
 	microk8s enable hostpath-storage
 	microk8s  enable dns
-	#microk8s enable nvidia
-	#microk8s enable dashboard
-	#microk8s enable registry:size=50Gi
+	microk8s enable nvidia
 
 check-gpu-support:	
 	microk8s kubectl logs -n gpu-operator-resources -lapp=nvidia-operator-validator -c nvidia-operator-validator

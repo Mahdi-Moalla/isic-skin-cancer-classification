@@ -12,6 +12,12 @@ webserver:
   #  requests:
   #    cpu: 500m
   #    memory: 128Mi
+  #startupProbe:
+  #  initialDelaySeconds: 0
+  #  timeoutSeconds: 20
+  #  failureThreshold: 20
+  #  periodSeconds: 10
+  #  scheme: HTTP
 
 dags:
   gitSync:
@@ -21,13 +27,13 @@ dags:
     ref: main
     depth: 2
     subPath: "airflow_dags"
-    resources:
-      limits:
-       cpu: 500m
-       memory: 512Mi
-      requests:
-       cpu: 100m
-       memory: 128Mi
+    #resources:
+    #  limits:
+    #   cpu: 500m
+    #   memory: 512Mi
+    #  requests:
+    #   cpu: 100m
+    #   memory: 128Mi
 
 webserverSecretKey: 6cf3054db3e2591a877e022e06b55d64
 
@@ -43,3 +49,8 @@ triggerer:
 logs:
   persistence:
     size: 10Gi
+
+
+#env:
+#  - name: ""
+#    value: ""

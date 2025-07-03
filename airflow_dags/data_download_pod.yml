@@ -1,3 +1,4 @@
+# TODO:  fix http server addr and port (configmap ....)
 apiVersion: v1
 kind: Pod
 metadata:
@@ -9,14 +10,30 @@ spec:
     - name: base
       image: ubuntu_toolset:latest
       imagePullPolicy: Never
-      command: ["/bin/sh"]
+      command: ["bash"]
       args:
         - -c
         - >-
-            echo hello1 &&
-            echo hello2 &&
-            sleep 1000 
+            mkdir /workspace/data/dataset/ &&
+            echo $dataset_http_server &&
+            echo $dataset_http_server_port &&
+            wget http://$dataset_http_server:$dataset_http_server_port/train-image.hdf5 -O /workspace/data/dataset/train-image.hdf5 &&
+            wget http://$dataset_http_server:$dataset_http_server_port/train-metadata.csv -O /workspace/data/dataset/train-metadata.csv &&
+            echo "data download finished ..." 
+      env:
       
+        - name: dataset_http_server
+          valueFrom:
+              configMapKeyRef:
+                name: training-pipeline-cfgmap
+                key: dataset_http_server
+        
+        - name: dataset_http_server_port
+          valueFrom:
+              configMapKeyRef:
+                name: training-pipeline-cfgmap
+                key: dataset_http_server_port
+        
       volumeMounts:
         - mountPath: "/workspace/data/"
           name: training-pipeline-volume
