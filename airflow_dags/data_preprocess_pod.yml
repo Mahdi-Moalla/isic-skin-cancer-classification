@@ -1,0 +1,66 @@
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-initialization/#create-a-pod-that-has-an-init-container
+apiVersion: v1
+kind: Pod
+metadata:
+  name: data-preprocess-pod
+  namespace: isic-skin-cancer-classification
+spec:
+  restartPolicy: OnFailure
+  initContainers:
+    - name: repo-clone
+      image: ubuntu_toolset:latest
+      imagePullPolicy: Never
+      command: ["bash"]
+      args:
+        - -c
+        - >-
+            cd /home &&
+            git clone $code_repo repo_code
+      env:
+      
+        - name: code_repo
+          valueFrom:
+              configMapKeyRef:
+                name: training-pipeline-cfgmap
+                key: code_repo
+      
+      volumeMounts:
+        - mountPath: "/home"
+          name: homedir
+  
+  containers:
+    - name: base
+      image: isic_preprocessor:latest
+      imagePullPolicy: Never
+      command: ["bash"]
+      env:
+
+        - name: dataset_folder
+          valueFrom:
+              configMapKeyRef:
+                name: training-pipeline-cfgmap
+                key: dataset_folder      
+        - name: preprocessed_dataset_folder
+          valueFrom:
+              configMapKeyRef:
+                name: training-pipeline-cfgmap
+                key: preprocessed_dataset_folder
+      
+      args:
+        - -c
+        - >-
+            cd /home/repo_code/training_pipeline/preprocess_data/ &&
+            python preprocess_data.py /workspace/data/$(dataset_folder) /workspace/data/$(preprocessed_dataset_folder)
+
+      volumeMounts:
+        - mountPath: "/home"
+          name: homedir
+        - mountPath: "/workspace/data"
+          name: training-pipeline-volume
+  volumes: ###
+    - name: training-pipeline-volume ###
+      persistentVolumeClaim: ###
+        claimName: traininig-pipeline-pvc ###
+  
+    - name: homedir
+      emptyDir: {}

@@ -39,11 +39,11 @@ def preprocess_data(input_data_path='../../project_data_prepare/split_dataset/',
 
     shutil.copy(osp.join(input_data_path,'train-metadata.csv'),
                 preprocessed_data_path)
-    shutil.copy(osp.join(input_data_path,'test-metadata.csv'),
-                preprocessed_data_path)
+    #shutil.copy(osp.join(input_data_path,'test-metadata.csv'),
+    #            preprocessed_data_path)
     
 
-    for split  in ['train','test']:
+    for split  in ['train']:#,'test']:
         with h5py.File(osp.join(input_data_path,f'{split}-image.hdf5'),'r') as f_in:
             with h5py.File(osp.join(preprocessed_data_path,f'{split}-image.hdf5'),'w') as f_out:
                 for isic_id in tqdm(f_in.keys()):

@@ -47,6 +47,9 @@ metadata:
 data:
   dataset_http_server: "192.168.1.8"
   dataset_http_server_port: "9000"
+  code_repo: "https://github.com/Mahdi-Moalla/isic-skin-cancer-classification"
+  dataset_folder: "dataset"
+  preprocessed_dataset_folder: "preprocessed_dataset"
 """
 
 with DAG(
@@ -73,7 +76,7 @@ with DAG(
     dag_id="training_pipeline"#,
     #on_failure_callback=trigger_cleaner_dag,
 ) as dag:
-    script_path=str(Path(__file__).parent.resolve())
+    dag_file_path=str(Path(__file__).parent.resolve())
 
 
     @task_group()
@@ -88,30 +91,6 @@ with DAG(
             yaml_conf=train_cfg_map,
         )
     
-    
-
-    data_downloader = KubernetesPodOperator(
-        namespace=namespace,
-        name="data_downloader",
-        pod_template_dict=yaml.safe_load(
-            Path(osp.join(
-                script_path,'data_download_pod.yml')).read_text()),
-        task_id="data-downloader",
-        get_logs=True
-    )
-
-    '''
-    data_downloader = KubernetesPodOperator(
-        namespace=namespace,
-        name="data_downloader",
-        pod_template_dict=yaml.safe_load(
-            Path(osp.join(
-                script_path,'data_download_pod.yml')).read_text()),
-        task_id="data-downloader",
-        get_logs=True
-    )
-    '''
-
     @task_group()
     def resources_cleaner_group():
         pvc_delete = KubernetesDeleteResourceOperator(
@@ -123,9 +102,32 @@ with DAG(
             task_id="delete_training_pipeline_cfgmap",
             yaml_conf=train_cfg_map,
         )
+    
+
+    data_downloader = KubernetesPodOperator(
+        namespace=namespace,
+        name="data_downloader",
+        pod_template_dict=yaml.safe_load(
+            Path(osp.join(
+                dag_file_path,'data_download_pod.yml')).read_text()),
+        task_id="data-downloader",
+        get_logs=True
+    )
+
+    data_preprocessor = KubernetesPodOperator(
+        namespace=namespace,
+        name="data_preprocessor",
+        pod_template_dict=yaml.safe_load(
+            Path(osp.join(
+                dag_file_path,'data_preprocess_pod.yml')).read_text()),
+        task_id="data-preprocessor",
+        get_logs=True
+    )
+
 
     resources_allocator_group() >> data_downloader
-    data_downloader  >>  resources_cleaner_group()
+    data_downloader >> data_preprocessor  
+    data_preprocessor >> resources_cleaner_group()
     
 
     

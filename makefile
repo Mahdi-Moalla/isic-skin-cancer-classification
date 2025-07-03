@@ -48,6 +48,14 @@ delete-cluster:
 	sudo microk8s reset --destroy-storage
 	microk8s stop
 
+
+microk8s-init-preprocessor-image:
+	bash training_pipeline/preprocess_data/build_preprocessor_image.sh ${preprocessor_docker_image}
+	docker save -o preprocessor_docker_image.tar  ${preprocessor_docker_image} 
+	microk8s images import < preprocessor_docker_image.tar
+	rm preprocessor_docker_image.tar
+
+
 microk8s-init-images:
 
 	bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
