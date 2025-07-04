@@ -41,7 +41,7 @@ spec:
             mkdir -p /workspace/data/work &&
             cd repo_code/training_pipeline/trainer/ &&
             python train.py /workspace/data/$(preprocessed_dataset_folder) /workspace/data/work &&
-            exit 1 ################
+            exit 1    #  blocking  dag end
 
       volumeMounts:
         - mountPath: "/workspace/data"

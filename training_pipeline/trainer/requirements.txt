@@ -6,3 +6,4 @@ flask==3.1.1
 gunicorn==23.0.0
 mlflow==3.1.1
 albumentationsx==2.0.9
+common==0.1.2

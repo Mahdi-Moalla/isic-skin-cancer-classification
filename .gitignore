@@ -207,3 +207,6 @@ training_pipeline/preprocess_data/preprocessed_data/*.npy
 training_pipeline/preprocess_data/preprocessed_data/*.csv
 
 *.tar
+
+inference_webserver/*.onnx
+inference_webserver/*.ckpt
