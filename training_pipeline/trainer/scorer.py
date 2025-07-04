@@ -8,6 +8,7 @@ from sklearn.metrics import roc_curve, roc_auc_score, auc
 
 import matplotlib.pyplot as plt
 
+import mlflow
 
 class binary_auroc_scorer(Callback):
     def __init__(self, config):
@@ -56,7 +57,14 @@ class binary_auroc_scorer(Callback):
                            
         print(f'@@@@@@@ binary au_roc_tpr.8 = {score_08} @@@@@@@')
         print(f'@@@@@@@ binary au_roc       = {score} @@@@@@@')
+
+        mlflow.log_metric(key=f"{pl_module.train_mode} binary au_roc",
+                          value=score,
+                          step=trainer.current_epoch)        
         
+        mlflow.log_metric(key=f"{pl_module.train_mode} binary au_roc_tpr.8",
+                          value=score_08,
+                          step=trainer.current_epoch)        
         
         pl_module.log("val_binary_auc_tpr.8", 
                       score_08, 
@@ -86,19 +94,21 @@ class binary_auroc_scorer(Callback):
 
         #fpr, tpr, _ = roc_curve(val_targets_np, val_scores_np)
 
-        #plt.figure()
-        #plt.plot(fpr, tpr,color='b')
-        #plt.plot([0,1], [.8, .8],color='r')
-        #plt.title(f'roc at epoch {trainer.current_epoch}')
-        #plt.savefig(osp.join(config.log_dir,'rocs',
+        fig = plt.figure()
+        plt.plot(fpr, tpr,color='b')
+        plt.plot([0,1], [.8, .8],color='r')
+        plt.title(f'roc at epoch {trainer.current_epoch}')
+        #plt.savefig(osp.join(self.config.log_dir,'rocs',
         #        f'fold_{trainer.fold_i}_mode_{pl_module.train_mode}_epoch_{trainer.current_epoch}.png'))
         #plt.show()
+        mlflow.log_figure(fig, artifact_file=f'fold_{trainer.fold_i}_mode_{pl_module.train_mode}_epoch_{trainer.current_epoch}.png')
 
-        plt.figure()
-
+        fig=plt.figure()
         plt.plot(self.val_binary_auc, color='b', marker="*")
         plt.title(f'aucs up to {trainer.current_epoch}')
-        plt.show()
+        #plt.show()
+        mlflow.log_figure(fig, artifact_file=f'fold_{trainer.fold_i}_mode_{pl_module.train_mode}_auc.png')
+
 
     def on_fit_end(self, trainer, pl_module):
         

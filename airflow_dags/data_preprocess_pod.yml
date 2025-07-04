@@ -33,6 +33,11 @@ spec:
       image: isic_preprocessor:latest
       imagePullPolicy: Never
       command: ["bash"]
+      args:
+        - -c
+        - >-
+            cd /home/repo_code/training_pipeline/preprocess_data/ &&
+            python preprocess_data.py /workspace/data/$(dataset_folder) /workspace/data/$(preprocessed_dataset_folder)
       env:
 
         - name: dataset_folder
@@ -46,21 +51,22 @@ spec:
                 name: training-pipeline-cfgmap
                 key: preprocessed_dataset_folder
       
-      args:
-        - -c
-        - >-
-            cd /home/repo_code/training_pipeline/preprocess_data/ &&
-            python preprocess_data.py /workspace/data/$(dataset_folder) /workspace/data/$(preprocessed_dataset_folder)
 
       volumeMounts:
         - mountPath: "/home"
           name: homedir
         - mountPath: "/workspace/data"
           name: training-pipeline-volume
+        - mountPath: "/mlflow/artifacts"
+          name: mlflow-artifacts-volume
   volumes: ###
     - name: training-pipeline-volume ###
       persistentVolumeClaim: ###
         claimName: traininig-pipeline-pvc ###
+    
+    - name: mlflow-artifacts-volume ###
+      persistentVolumeClaim: ###
+        claimName: mlflow-artifacts-pvc ###
   
     - name: homedir
       emptyDir: {}

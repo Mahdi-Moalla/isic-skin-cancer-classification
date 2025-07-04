@@ -40,18 +40,23 @@ spec:
             git clone $code_repo repo_code &&
             mkdir -p /workspace/data/work &&
             cd repo_code/training_pipeline/trainer/ &&
-            python train.py /workspace/data/$(preprocessed_dataset_folder) /workspace/data/work
+            python train.py /workspace/data/$(preprocessed_dataset_folder) /workspace/data/work &&
             exit 1 ################
 
       volumeMounts:
         - mountPath: "/workspace/data"
           name: training-pipeline-volume
+        - mountPath: "/mlflow/artifacts"
+          name: mlflow-artifacts-volume
         - mountPath: /dev/shm
-          name: cache-volume
+          name: shared-mem
   volumes: ###
     - name: training-pipeline-volume ###
       persistentVolumeClaim: ###
         claimName: traininig-pipeline-pvc ###
-    - name: cache-volume
+    - name: mlflow-artifacts-volume ###
+      persistentVolumeClaim: ###
+        claimName: mlflow-artifacts-pvc ###
+    - name: shared-mem
       medium: Memory
       sizeLimit: 256Mi

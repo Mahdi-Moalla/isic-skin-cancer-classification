@@ -4,3 +4,4 @@ RUN apt-get -y update
 RUN apt-get install -y  nano 
 RUN apt-get install -y wget 
 RUN apt-get install -y git
+RUN echo "1 52" | apt-get install -y  python3

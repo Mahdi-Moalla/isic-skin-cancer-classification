@@ -17,23 +17,17 @@ spec:
             mkdir /workspace/data/$(dataset_folder)/ &&
             echo $dataset_http_server &&
             echo $dataset_http_server_port &&
-            wget http://$(dataset_http_server):$(dataset_http_server_port)/train-image.hdf5 -O /workspace/data/$(dataset_folder)/train-image.hdf5 &&
-            wget http://$(dataset_http_server):$(dataset_http_server_port)/train-metadata.csv -O /workspace/data/$(dataset_folder)/train-metadata.csv &&
+            wget $(original_dataset_http_server)/train-image.hdf5 -O /workspace/data/$(dataset_folder)/train-image.hdf5 &&
+            wget $(original_dataset_http_server)/train-metadata.csv -O /workspace/data/$(dataset_folder)/train-metadata.csv &&
             echo "data download finished ..." 
 
       env:
       
-        - name: dataset_http_server
+        - name: original_dataset_http_server
           valueFrom:
               configMapKeyRef:
                 name: training-pipeline-cfgmap
-                key: dataset_http_server
-        
-        - name: dataset_http_server_port
-          valueFrom:
-              configMapKeyRef:
-                name: training-pipeline-cfgmap
-                key: dataset_http_server_port
+                key: original_dataset_http_server
         
         - name: dataset_folder
           valueFrom:

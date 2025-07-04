@@ -8,12 +8,12 @@ h5py = "*"
 fire = "*"
 numpy = "*"
 pillow = "*"
-albumentations = "*"
 tqdm = "*"
 pandas = "*"
 dask = "*"
 scikit-learn = "*"
 mlflow = "==3.1.1"
+albumentationsx = "*"
 
 [dev-packages]
 

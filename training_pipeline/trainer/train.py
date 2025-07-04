@@ -1,6 +1,8 @@
 import os
 import os.path as osp
 import shutil
+from pathlib import Path
+import json
 import warnings
 
 os.environ["CUBLAS_WORKSPACE_CONFIG"]=":4096:8"
@@ -31,6 +33,7 @@ from isic_model import isic_classifier
 
 from scorer import binary_auroc_scorer
 
+import mlflow
 
 def prepare_data(config, 
                  X_train, 
@@ -98,6 +101,12 @@ def fold_train(config,
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
     
     best_model_path=osp.join(config.checkpoints_dir,f'best_{fold_i}.ckpt')
+
+    mlflow.log_artifact(best_model_path,
+                        artifact_path="best_pretrain")
+    
+    mlflow.pytorch.log_model(isic_classifier.load_from_checkpoint(best_model_path, config=config).model,
+                             artifact_path="best_pretrain_inmodel")
     
     print('%%%%%%%%%%% finetuning.....')
     
@@ -126,6 +135,12 @@ def fold_train(config,
     trainer.fold_i=fold_i
     
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
+
+    best_model_path=osp.join(config.checkpoints_dir,f'best_finetune_{fold_i}.ckpt')
+    mlflow.log_artifact(best_model_path,
+                        artifact_path="best_finetune")
+    mlflow.pytorch.log_model(isic_classifier.load_from_checkpoint(best_model_path, config=config).model,
+                             artifact_path="best_finetune_inmodel")
     
     
 
@@ -170,81 +185,99 @@ def infer_test_data(config, val_transforms):
 def main(data_dir='/workspace/data',
          work_dir='/workspace/work'):
     
-    from config import (config,
-                        train_transforms,
-                        val_transforms)
-    
-    config.data_dir=data_dir
+    run_context=os.getenv("run_context").replace("\'", "\"")
+    run_context=json.loads( run_context  )
 
-    #os.makedirs(work_dir, exist_ok=True)
+    mlflow.set_tracking_uri(uri=run_context["mlflow_server_uri"])
+    mlflow.set_experiment(run_context["experiment_name"])
+    with mlflow.start_run(run_id=run_context["run_id"]):
 
-    config.checkpoints_dir=osp.join(work_dir,'checkpoints')
-    config.log_dir=osp.join(work_dir,'logs')
-    
-    pl.seed_everything(config.seed)
+        mlflow.log_artifacts(str(Path(__file__).parent.resolve()), 
+                             artifact_path="trainer")
+        
+        mlflow.pytorch.autolog()
 
-    
-    #test_metadata=pd.read_csv(osp.join(config.data_dir,'test-metadata.csv'))
-
-    shutil.rmtree(config.checkpoints_dir, ignore_errors=True)
-    shutil.rmtree(config.log_dir, ignore_errors=True)
-
-    logger = CSVLogger(save_dir=config.log_dir)
-    
-
-    train_metadata=pd.read_csv(osp.join(config.data_dir,'train-metadata.csv'))
-
-    X=train_metadata['isic_id']
-    y=train_metadata['target']
-    
-    print('########## StratifiedKFold ##########')
-    skf = StratifiedKFold(n_splits=config.n_fold)
-    for i, (train_index, val_index) in enumerate(skf.split(X,y)):
-        print('#########################################################################')
-        print('#########################################################################')
-        print(f'fold {i}: {len(val_index)/len(y)}  {sum(y[val_index])/sum(y)}')
-        X_train=train_metadata.loc[train_index, 'isic_id']
-        X_val=train_metadata.loc[val_index, 'isic_id']
-    
-        # reduce val dataset
-        val_pos=train_metadata.loc[ (train_metadata['isic_id'].isin(X_val)) & \
-                                (train_metadata['target']==1) ]
-        val_neg=train_metadata.loc[ (train_metadata['isic_id'].isin(X_val)) & \
-                                    (train_metadata['target']==0) ]
+        from config import (config,
+                            train_transforms,
+                            val_transforms)
+        mlflow.log_dict(config.to_dict(), "trainer_config.json")
         
         
-        reduced_X_val=pd.concat([val_pos['isic_id'],val_neg.loc[::50,'isic_id']])
-        #reduced_X_val=pd.concat([val_pos['isic_id'],
-        #                         val_neg.sample(frac=0.2)['isic_id']])
-        #reduced_X_val.shape
-    
-        train_dataloader, val_dataloader = prepare_data(config, 
-                                                        X_train, 
-                                                        reduced_X_val,
-                                                        train_transforms,
-                                                        val_transforms)
-    
-        fold_train(config, i, train_dataloader, val_dataloader, logger )
+        config.data_dir=data_dir
+
+        #os.makedirs(work_dir, exist_ok=True)
+
+        config.checkpoints_dir=osp.join(work_dir,'checkpoints')
+        config.log_dir=osp.join(work_dir,'logs')
+        
+        pl.seed_everything(config.seed)
+
+        
+        #test_metadata=pd.read_csv(osp.join(config.data_dir,'test-metadata.csv'))
+
+        shutil.rmtree(config.checkpoints_dir, ignore_errors=True)
+        shutil.rmtree(config.log_dir, ignore_errors=True)
+
+        logger = CSVLogger(save_dir=config.log_dir)
+        
+
+        train_metadata=pd.read_csv(osp.join(config.data_dir,'train-metadata.csv'))
+
+        X=train_metadata['isic_id']
+        y=train_metadata['target']
+        
+        print('########## StratifiedKFold ##########')
+        skf = StratifiedKFold(n_splits=config.n_fold)
+        for i, (train_index, val_index) in enumerate(skf.split(X,y)):
+            with mlflow.start_run(run_name=f"fold_{i}",
+                                  nested=True, 
+                                  log_system_metrics=True):
+                mlflow.pytorch.autolog()
+                print('#########################################################################')
+                print('#########################################################################')
+                print(f'fold {i}: {len(val_index)/len(y)}  {sum(y[val_index])/sum(y)}')
+                X_train=train_metadata.loc[train_index, 'isic_id']
+                X_val=train_metadata.loc[val_index, 'isic_id']
+            
+                # reduce val dataset
+                val_pos=train_metadata.loc[ (train_metadata['isic_id'].isin(X_val)) & \
+                                        (train_metadata['target']==1) ]
+                val_neg=train_metadata.loc[ (train_metadata['isic_id'].isin(X_val)) & \
+                                            (train_metadata['target']==0) ]
+                
+                
+                reduced_X_val=pd.concat([val_pos['isic_id'],val_neg.loc[::50,'isic_id']])
+                #reduced_X_val=pd.concat([val_pos['isic_id'],
+                #                         val_neg.sample(frac=0.2)['isic_id']])
+                #reduced_X_val.shape
+            
+                train_dataloader, val_dataloader = prepare_data(config, 
+                                                                X_train, 
+                                                                reduced_X_val,
+                                                                train_transforms,
+                                                                val_transforms)
+            
+                fold_train(config, i, train_dataloader, val_dataloader, logger )
 
 
-    
-    logs=pd.read_csv(osp.join(config.log_dir,'lightning_logs/version_0/metrics.csv'))
-    
-    
-    logs=logs.loc[logs['log_val']==1,['epoch','fold_i','train_mode','val_binary_auc','val_binary_auc_tpr.8']]
-    
-    logs.epoch=logs.epoch.astype('int')
-    logs.fold_i=logs.fold_i.astype('int')
-    logs.train_mode=logs.train_mode.astype('int')
-    
-    logs.train_mode=logs.train_mode.map(lambda x:'finetune' if x==1 else 'transfer-learning')
-    
-    print('####################################')
-    print(logs.loc[logs['train_mode']=='finetune'])
-    print('####################################')
-    print(logs.loc[logs['train_mode']=='finetune','val_binary_auc_tpr.8'].mean())
+        
+        logs=pd.read_csv(osp.join(config.log_dir,'lightning_logs/version_0/metrics.csv'))
+        
+        
+        logs=logs.loc[logs['log_val']==1,['epoch','fold_i','train_mode','val_binary_auc','val_binary_auc_tpr.8']]
+        
+        logs.epoch=logs.epoch.astype('int')
+        logs.fold_i=logs.fold_i.astype('int')
+        logs.train_mode=logs.train_mode.astype('int')
+        
+        logs.train_mode=logs.train_mode.map(lambda x:'finetune' if x==1 else 'transfer-learning')
+        
+        print('####################################')
+        print(logs.loc[logs['train_mode']=='finetune'])
+        print('####################################')
+        print(logs.loc[logs['train_mode']=='finetune','val_binary_auc_tpr.8'].mean())
 
-    #infer_test_data(config, val_transforms)
+        #infer_test_data(config, val_transforms)
 
 
 

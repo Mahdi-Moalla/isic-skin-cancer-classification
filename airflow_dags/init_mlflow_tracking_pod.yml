@@ -1,0 +1,41 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: python-pod
+  namespace: isic-skin-cancer-classification
+spec:
+  restartPolicy: OnFailure
+  containers:
+    - name: base
+      image: burakince/mlflow:3.1.1
+      env:
+      
+        - name: mlflow_server_url
+          valueFrom:
+              configMapKeyRef:
+                name: training-pipeline-cfgmap
+                key: mlflow_server_url
+
+        - name: mlflow_experiment_name
+          valueFrom:
+              configMapKeyRef:
+                name: training-pipeline-cfgmap
+                key: mlflow_experiment_name
+      
+      command: ["python"]
+      args:
+        - -c
+        - >-
+            import  json;
+            import os;
+            import mlflow;
+            mlflow.set_tracking_uri(uri=os.getenv("mlflow_server_url"));
+            mlflow.set_experiment(os.getenv("mlflow_experiment_name"));
+            run=mlflow.start_run();
+            data={"run_id": run.info.run_id,
+                  "experiment_name":os.getenv("mlflow_experiment_name"),
+                  "mlflow_server_uri": os.getenv("mlflow_server_url")
+            };
+            f_xcom=open('/airflow/xcom/return.json','w');
+            json.dump(data,f_xcom);
+            f_xcom.close();
