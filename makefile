@@ -2,11 +2,15 @@ K8S_NAMESPACE:=isic-skin-cancer-classification
 CLUSTER_NAME:=isic-cluster
 AIRFLOW_NAME:=airflow-service
 MLFLOW_NAME:=mlflow-service
+ADMINER_NAME:=adminer-service
 kube_config = create
 
 trainer_docker_image:=nvcr_pytorch_tensorrt_mod:latest
 preprocessor_docker_image:=isic_preprocessor:latest
 ubuntu_toolset_docker_image:=ubuntu_toolset:latest
+
+mlflow_db_name:=mlflow_db
+mlflow_db_secret_name:=mlflow-db-secret
 
 #  https://discuss.kubernetes.io/t/microk8s-images-prune-utility-for-production-servers/15874
 
@@ -98,12 +102,15 @@ remove-airflow:
 
 
 init-mlflow:
-	#bash create_db.sh ${K8S_NAMESPACE}	
-	kubectl apply -f kubernetes_files/mlflow_pvcs.yml
+	kubectl apply -f kubernetes_files/mlflow_db_creds.yml  -n ${K8S_NAMESPACE}
+	kubectl apply -f kubernetes_files/mlflow_pvcs.yml -n ${K8S_NAMESPACE}
+	bash create_postgres_db.sh ${K8S_NAMESPACE}	${mlflow_db_name} ${mlflow_db_secret_name}
 	helm repo add community-charts https://community-charts.github.io/helm-charts
 	helm install ${MLFLOW_NAME} community-charts/mlflow\
 	 --namespace ${K8S_NAMESPACE}\
 	 -f kubernetes_files/mlflow_values.yaml\
+	 --set backendStore.postgres.database=${mlflow_db_name}\
+	 --set backendStore.existingDatabaseSecret.name=${mlflow_db_secret_name}\
 	 --version 1.3.0
 
 expose-mlflow:
@@ -116,3 +123,13 @@ remove-mlflow:
 
 init-dataset-http-server:
 	bash project_data_prepare/http_serve.sh 9000 split_dataset/
+
+
+init-adminer:
+	helm repo add startechnica https://startechnica.github.io/apps
+	helm install ${ADMINER_NAME} startechnica/adminer\
+		--namespace ${K8S_NAMESPACE}\
+		--version 0.1.8
+
+expose-adminer:
+	kubectl port-forward --address 0.0.0.0 svc/${ADMINER_NAME} 8880:8080 --namespace ${K8S_NAMESPACE} &

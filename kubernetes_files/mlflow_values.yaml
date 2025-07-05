@@ -3,16 +3,16 @@ strategy:
   type: Recreate
 
 extraVolumes:
-  - name: mlflow-data-volume
-    persistentVolumeClaim:
-      claimName: mlflow-data-pvc
+  # - name: mlflow-data-volume
+  #   persistentVolumeClaim:
+  #     claimName: mlflow-data-pvc
   - name: mlflow-artifacts-volume
     persistentVolumeClaim:
       claimName: mlflow-artifacts-pvc
 
 extraVolumeMounts:
-  - name: mlflow-data-volume
-    mountPath: /mlflow/data
+  # - name: mlflow-data-volume
+  #   mountPath: /mlflow/data
   - name: mlflow-artifacts-volume
     mountPath: /mlflow/artifacts
 
@@ -22,14 +22,18 @@ artifactRoot:
 
 backendStore:
   databaseMigration: false
-  defaultSqlitePath: "/mlflow/data/mlflow.db"
-  #postgres:
-  #  enabled: true
-  #  host: "airflow-service-postgresql"
-  #  port: 5432
+  #defaultSqlitePath: "/mlflow/data/mlflow.db"
+  postgres:
+    enabled: true
+    host: "airflow-service-postgresql"
+    port: 5432
   #  database: "mlflow_db"
   #  user: "mlflow_user"
   #  password: "mlflow_pass"
+  existingDatabaseSecret:
+  #  name: "postgres-database-secret"
+    usernameKey: "username"
+    passwordKey: "password"
 
 ingress:
   enabled: true

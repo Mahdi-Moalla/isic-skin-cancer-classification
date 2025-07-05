@@ -174,8 +174,8 @@ def main_fast(pytorch_model_path='./best_finetune_0.ckpt',
 
         #print(tab_feats_torch.shape)
 
-        #with torch.no_grad():
-        logits=model_torch(image_torch[None,...].cuda(),
+        with torch.no_grad():
+            logits=model_torch(image_torch[None,...].cuda(),
                         tab_feats_torch[None,...].cuda())
         
         print("torch: ",logits)
