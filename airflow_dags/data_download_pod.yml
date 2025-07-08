@@ -14,7 +14,7 @@ spec:
       args:
         - -c
         - >-
-            mkdir /workspace/data/$(dataset_folder)/ &&
+            mkdir -p /workspace/data/$(dataset_folder)/ &&
             echo $dataset_http_server &&
             echo $dataset_http_server_port &&
             wget $(original_dataset_http_server)/train-image.hdf5 -O /workspace/data/$(dataset_folder)/train-image.hdf5 &&

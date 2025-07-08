@@ -1,0 +1,8 @@
+{
+  "type": "record",
+  "name": "isic_record",
+  "fields": [
+    {"name": "image", "type": "bytes"},
+    {"name": "json_record", "type": "string"}
+  ]
+}

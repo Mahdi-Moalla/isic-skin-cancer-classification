@@ -55,18 +55,18 @@ delete-cluster:
 
 microk8s-init-images:
 
-	bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
+	#bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
 	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image} 
 	microk8s images import < ubuntu_toolset_docker_image.tar
 	rm ubuntu_toolset_docker_image.tar
 
-	bash training_pipeline/preprocess_data/build_preprocessor_image.sh ${preprocessor_docker_image}
+	#bash training_pipeline/preprocess_data/build_preprocessor_image.sh ${preprocessor_docker_image}
 	docker save -o preprocessor_docker_image.tar  ${preprocessor_docker_image} 
 	microk8s images import < preprocessor_docker_image.tar
 	rm preprocessor_docker_image.tar
 
-	docker pull nvcr.io/nvidia/pytorch:25.05-py3
-	bash training_pipeline/trainer/build_trainer_image.sh ${trainer_docker_image}
+	#docker pull nvcr.io/nvidia/pytorch:25.05-py3
+	#bash training_pipeline/trainer/build_trainer_image.sh ${trainer_docker_image}
 	docker save -o trainer_docker_image.tar  ${trainer_docker_image} 
 	microk8s images import < trainer_docker_image.tar
 	rm trainer_docker_image.tar

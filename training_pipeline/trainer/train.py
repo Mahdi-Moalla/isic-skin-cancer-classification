@@ -105,8 +105,6 @@ def fold_train(config,
     mlflow.log_artifact(best_model_path,
                         artifact_path="best_pretrain")
     
-    mlflow.pytorch.log_model(isic_classifier.load_from_checkpoint(best_model_path, config=config).model,
-                             artifact_path="best_pretrain_inmodel")
     
     print('%%%%%%%%%%% finetuning.....')
     
@@ -139,8 +137,6 @@ def fold_train(config,
     best_model_path=osp.join(config.checkpoints_dir,f'best_finetune_{fold_i}.ckpt')
     mlflow.log_artifact(best_model_path,
                         artifact_path="best_finetune")
-    mlflow.pytorch.log_model(isic_classifier.load_from_checkpoint(best_model_path, config=config).model,
-                             artifact_path="best_finetune_inmodel")
     
     
 

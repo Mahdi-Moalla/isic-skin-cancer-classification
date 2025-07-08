@@ -2,6 +2,4 @@ FROM python:3.12.3-slim
 
 RUN pip install fire pandas numpy sqlalchemy psycopg\
      psycopg_binary flask h5py pillow tqdm uuid addict\
-     evidently==0.7.0 requests joblib jupyter matplotlib\
-     kafka-python
-RUN pip install avro
+     evidently==0.7.0 requests joblib jupyter matplotlib
