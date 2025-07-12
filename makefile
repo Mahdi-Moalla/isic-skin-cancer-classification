@@ -1,16 +1,23 @@
 K8S_NAMESPACE:=isic-skin-cancer-classification
-CLUSTER_NAME:=isic-cluster
+
 AIRFLOW_NAME:=airflow-service
 MLFLOW_NAME:=mlflow-service
 ADMINER_NAME:=adminer-service
+KAFKA_NAME:=kafka-service
+INFERENCE_WEBSERVER_NAME:=inference-webservice
+
 kube_config = create
 
 trainer_docker_image:=nvcr_pytorch_tensorrt_mod:latest
 preprocessor_docker_image:=isic_preprocessor:latest
 ubuntu_toolset_docker_image:=ubuntu_toolset:latest
+webserver_docker_image:=webserver:latest
 
 mlflow_db_name:=mlflow_db
 mlflow_db_secret_name:=mlflow-db-secret
+
+infernce_webserver_db_name:=inference_webserver_db
+infernce_webserver_db_secret_name:=inference-webserver-db-secret
 
 #  https://discuss.kubernetes.io/t/microk8s-images-prune-utility-for-production-servers/15874
 
@@ -53,7 +60,15 @@ delete-cluster:
 	microk8s stop
 
 
+
+
+
 microk8s-init-images:
+
+	#bash inference_webserver/webserver_docker_img/build_webserver_dockerfile.sh ${webserver_docker_image}
+	docker save -o webserver_docker_image.tar  ${webserver_docker_image} 
+	microk8s images import < webserver_docker_image.tar
+	rm webserver_docker_image.tar
 
 	#bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
 	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image} 
@@ -74,16 +89,22 @@ microk8s-init-images:
 	docker pull apache/airflow:2.10.5
 	docker pull burakince/mlflow:3.1.1
 	docker pull docker.io/bitnami/postgresql:16.1.0-debian-11-r15
+	docker pull kafkace/kafka:v3.7.1-63ba8d2
+	docker pull provectuslabs/kafka-ui:v0.7.2
 
 	docker save apache/airflow:2.10.5 > airflow.tar
 	docker save docker.io/bitnami/postgresql:16.1.0-debian-11-r15 > postgresql.tar
 	docker save burakince/mlflow:3.1.1 > mlflow.tar
+	docker save kafkace/kafka:v3.7.1-63ba8d2 > kafka.tar
+	docker save provectuslabs/kafka-ui:v0.7.2 > kafka_ui.tar
 
 	microk8s images import < airflow.tar
 	microk8s images import < postgresql.tar
 	microk8s images import < mlflow.tar
+	microk8s images import < kafka.tar
+	microk8s images import < kafka_ui.tar
 
-	rm airflow.tar postgresql.tar mlflow.tar
+	rm airflow.tar postgresql.tar mlflow.tar kafka.tar kafka_ui.tar
 
 init-airflow:
 	helm repo add apache-airflow https://airflow.apache.org
@@ -133,3 +154,31 @@ init-adminer:
 
 expose-adminer:
 	kubectl port-forward --address 0.0.0.0 svc/${ADMINER_NAME} 8880:8080 --namespace ${K8S_NAMESPACE} &
+
+init-kafka:
+	helm repo add kafka https://helm-charts.itboon.top/kafka/
+	helm install ${KAFKA_NAME} kafka/kafka\
+	 --namespace ${K8S_NAMESPACE}\
+	 -f kubernetes_files/kafka_values.yaml\
+	 --version 18.0.1
+
+expose-kafka-ui:
+	kubectl port-forward --address 0.0.0.0 svc/${KAFKA_NAME}-ui 8088:8080 --namespace ${K8S_NAMESPACE} &
+
+
+remove-kafka:
+	helm uninstall ${KAFKA_NAME}
+
+
+init-inference-webserver:
+	kubectl apply -f kubernetes_files/inference_webserver_db_creds.yml  -n ${K8S_NAMESPACE}
+	-bash create_postgres_db.sh ${K8S_NAMESPACE}\
+		${infernce_webserver_db_name} ${infernce_webserver_db_secret_name}
+	helm upgrade -i ${INFERENCE_WEBSERVER_NAME}\
+	 inference_webserver/helm_chart/inference_webserver\
+	 -f inference_webserver/helm_chart/inference_webserver/values.yaml
+
+
+remove-inference-webservice:
+	helm uninstall ${INFERENCE_WEBSERVER_NAME}
+	

@@ -24,6 +24,6 @@ if __name__=='__main__':
     topic_list.append(NewTopic(name=kafka_topic_name, 
             num_partitions=kafka_topic_num_partitions, 
             replication_factor=kafka_topic_replication_factor))
-
+    
     admin_client.create_topics(new_topics=topic_list, 
                             validate_only=False)

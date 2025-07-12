@@ -1,0 +1,5 @@
+FROM python:3.12.3-slim
+
+RUN pip install fire pandas sqlalchemy psycopg\
+     psycopg_binary flask gunicorn pillow tqdm addict\
+     kafka-python avro requests h5py

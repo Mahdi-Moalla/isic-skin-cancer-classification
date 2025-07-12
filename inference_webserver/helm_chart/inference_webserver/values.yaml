@@ -1,0 +1,26 @@
+namespace: isic-skin-cancer-classification
+
+code_repo: https://github.com/Mahdi-Moalla/isic-skin-cancer-classification
+
+kafka:
+  server: "kafka-service-broker:9092"
+  topic_name: "isic_topic"
+  topic_num_partitions: 1
+  topic_replication_factor: 1
+
+isic_schema_file: "../isic_record.avsc"
+
+postgres_db:
+  host: airflow-service-postgresql
+  port: "5432"
+  db_name: inference_webserver_db
+  existingDatabaseSecret:
+    name: inference-webserver-db-secret
+    usernameKey: username
+    passwordKey: password
+
+webserver:
+  name: isic-webserver
+  deployment_name: isic-webserver-deployment
+  image: webserver:latest
+  
