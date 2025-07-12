@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.inference.name }}-deployment
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3      # number of previous versions to keep
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Values.inference.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.inference.name }}
+    spec:
+      containers:
+      - name: inference
+        image: {{ .Values.inference.image }}
+        imagePullPolicy: Never
+        command: ["bash"]
+
+        args:
+          - -c
+          - >-
+              cd /home &&
+              git clone {{ .Values.code_repo }} repo_code &&
+              bash repo_code/inference_webserver/inference/run_inference.sh
+        
+        env:
+        
+        - name: kafka_server
+          value: {{ .Values.kafka.server }}
+        - name: kafka_topic_name
+          value: {{ .Values.kafka.topic_name }}
+
+        - name: mlflow_server_url
+          value: {{ .Values.mlflow.server }}
+        - name: mlflow_experiment_name
+          value: {{ .Values.mlflow.experiment_name }}
+        
+        - name: model_checkpoint_uri
+          value: {{ .Values.inference.best_model.model_checkpoint_uri }}
+        - name: model_def_uri
+          value: {{ .Values.inference.best_model.model_def_uri}}
+        - name: model_config_uri
+          value: {{ .Values.inference.best_model.model_config_uri}}
+        - name: preprocessor_def_uri
+          value: {{ .Values.inference.best_model.preprocessor_def_uri}}
+
+        - name: postgres_server
+          value: {{ .Values.postgres_db.host }}
+        - name: postgres_port
+          value: "{{ .Values.postgres_db.port }}"
+        - name: postgres_db_name
+          value: {{ .Values.postgres_db.db_name }}
+        - name: postgres_db_user
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgres_db.existing_db_secret.name }}
+              key: {{ .Values.postgres_db.existing_db_secret.usernameKey }}
+        - name: postgres_db_password
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgres_db.existing_db_secret.name }}
+              key: {{ .Values.postgres_db.existing_db_secret.passwordKey }}
+
+
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: shared-mem
+        
+        resources:
+          limits:
+            nvidia.com/gpu: 1
+        #hostIPC: true
+        #resources:
+        #  requests:
+        #    memory: "5Gi"
+        #    ephemeral-storage: "2Gi"
+        #  limits:
+        #    memory: "5Gi"
+        #    ephemeral-storage: "2Gi"
+          
+      volumes: ###
+        - name: shared-mem
+          medium: Memory
+          sizeLimit: 256Mi
+      

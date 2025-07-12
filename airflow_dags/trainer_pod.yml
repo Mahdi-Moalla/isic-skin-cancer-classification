@@ -25,14 +25,14 @@ spec:
         limits:
           nvidia.com/gpu: 1
       command: ["bash"]
-      hostIPC: true
-      resources:
-      requests:
-        memory: "5Gi"
-        ephemeral-storage: "2Gi"
-      limits:
-        memory: "5Gi"
-        ephemeral-storage: "2Gi"
+      #hostIPC: true
+      #resources:
+      #  requests:
+      #    memory: "5Gi"
+      #    ephemeral-storage: "2Gi"
+      #  limits:
+      #    memory: "5Gi"
+      #    ephemeral-storage: "2Gi"
       args:
         - -c
         - >-

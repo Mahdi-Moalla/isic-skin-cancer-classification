@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.webserver.name }}-deployment
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3      # number of previous versions to keep
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Values.webserver.name }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.webserver.name }}
+    spec:
+      initContainers:
+      - name: repo-clone
+        image: ubuntu_toolset:latest
+        imagePullPolicy: Never
+        command: ["bash"]
+
+        args:
+          - -c
+          - >-
+              cd /home &&
+              git clone {{ .Values.code_repo }} repo_code
+        
+        volumeMounts:
+        - mountPath: "/home"
+          name: homedir
+
+      containers:
+      - name: webserver
+        image: {{ .Values.webserver.image }}
+        imagePullPolicy: Never
+        command: ["bash"]
+        args: ["/home/repo_code/inference_webserver/webserver/run_webserver.sh"]
+        ports:
+          - containerPort: 8080
+        env:
+        - name: kafka_server
+          value: {{ .Values.kafka.server }}
+        - name: kafka_topic_name
+          value: {{ .Values.kafka.topic_name }} 
+        - name: kafka_topic_num_partitions
+          value: "{{ .Values.kafka.topic_num_partitions }}"
+        - name: kafka_topic_replication_factor
+          value: "{{ .Values.kafka.topic_replication_factor }}"
+        - name: isic_schema_file
+          value: {{ .Values.isic_schema_file }}
+        
+        volumeMounts:
+        - mountPath: "/home"
+          name: homedir
+        
+      volumes: ###
+        - name: homedir
+          emptyDir: {}
+      

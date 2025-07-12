@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: inference-webserver-db-secret
+  namespace: isic-skin-cancer-classification
+data:
+  username: aW5mZXJlbmNlX3dlYnNlcnZlcl91c2VyCg==
+  password: aW5mZXJlbmNlX3dlYnNlcnZlcl9wYXNzCg==

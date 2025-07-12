@@ -1,0 +1,13 @@
+broker:
+  config:
+    num.partitions: "1"
+  resources:
+    limits:
+      cpu: 1
+      memory: 2Gi
+    requests:
+      cpu: 300m
+      memory: 1Gi
+
+ui:
+  enabled: true

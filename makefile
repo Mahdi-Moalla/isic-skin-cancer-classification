@@ -1,18 +1,24 @@
 K8S_NAMESPACE:=isic-skin-cancer-classification
-CLUSTER_NAME:=isic-cluster
+
 AIRFLOW_NAME:=airflow-service
 MLFLOW_NAME:=mlflow-service
 ADMINER_NAME:=adminer-service
+KAFKA_NAME:=kafka-service
+INFERENCE_WEBSERVER_NAME:=inference-webservice
+
 kube_config = create
 
 trainer_docker_image:=nvcr_pytorch_tensorrt_mod:latest
 preprocessor_docker_image:=isic_preprocessor:latest
 ubuntu_toolset_docker_image:=ubuntu_toolset:latest
+webserver_docker_image:=webserver:latest
 
 mlflow_db_name:=mlflow_db
 mlflow_db_secret_name:=mlflow-db-secret
 
-#  https://discuss.kubernetes.io/t/microk8s-images-prune-utility-for-production-servers/15874
+infernce_webserver_db_name:=inference_webserver_db
+infernce_webserver_db_secret_name:=inference-webserver-db-secret
+
 
 init-microk8s:
 	sudo snap install microk8s --classic --channel=1.32
@@ -35,6 +41,11 @@ setup-cluster:
 	microk8s enable hostpath-storage
 	microk8s  enable dns
 	microk8s enable nvidia
+
+
+#  https://discuss.kubernetes.io/t/microk8s-images-prune-utility-for-production-servers/15874
+prune-storage:
+	crictl -r unix:///var/snap/microk8s/common/run/containerd.sock rmi --prune
 
 check-gpu-support:	
 	microk8s kubectl logs -n gpu-operator-resources -lapp=nvidia-operator-validator -c nvidia-operator-validator
@@ -60,6 +71,12 @@ microk8s-init-images:
 	microk8s images import < ubuntu_toolset_docker_image.tar
 	rm ubuntu_toolset_docker_image.tar
 
+	#bash inference_webserver/webserver_docker_img/build_webserver_dockerfile.sh ${webserver_docker_image}
+	docker save -o webserver_docker_image.tar  ${webserver_docker_image} 
+	microk8s images import < webserver_docker_image.tar
+	rm webserver_docker_image.tar
+
+
 	#bash training_pipeline/preprocess_data/build_preprocessor_image.sh ${preprocessor_docker_image}
 	docker save -o preprocessor_docker_image.tar  ${preprocessor_docker_image} 
 	microk8s images import < preprocessor_docker_image.tar
@@ -74,16 +91,25 @@ microk8s-init-images:
 	docker pull apache/airflow:2.10.5
 	docker pull burakince/mlflow:3.1.1
 	docker pull docker.io/bitnami/postgresql:16.1.0-debian-11-r15
+	docker pull kafkace/kafka:v3.7.1-63ba8d2
+	docker pull provectuslabs/kafka-ui:v0.7.2
+	docker pull docker.io/adminer:4.8.1-standalone
 
 	docker save apache/airflow:2.10.5 > airflow.tar
 	docker save docker.io/bitnami/postgresql:16.1.0-debian-11-r15 > postgresql.tar
 	docker save burakince/mlflow:3.1.1 > mlflow.tar
+	docker save kafkace/kafka:v3.7.1-63ba8d2 > kafka.tar
+	docker save provectuslabs/kafka-ui:v0.7.2 > kafka_ui.tar
+	docker save docker.io/adminer:4.8.1-standalone > adminer.tar
 
 	microk8s images import < airflow.tar
 	microk8s images import < postgresql.tar
 	microk8s images import < mlflow.tar
+	microk8s images import < kafka.tar
+	microk8s images import < kafka_ui.tar
+	microk8s images import < adminer.tar
 
-	rm airflow.tar postgresql.tar mlflow.tar
+	rm airflow.tar postgresql.tar mlflow.tar kafka.tar kafka_ui.tar adminer.tar
 
 init-airflow:
 	helm repo add apache-airflow https://airflow.apache.org
@@ -94,7 +120,7 @@ init-airflow:
 		 --debug
 
 expose-airflow:
-	kubectl port-forward --address 0.0.0.0 svc/${AIRFLOW_NAME}-webserver 8080:8080 --namespace ${K8S_NAMESPACE} &
+	kubectl port-forward --address 0.0.0.0 svc/${AIRFLOW_NAME}-webserver 8888:8080 --namespace ${K8S_NAMESPACE} &
 
 remove-airflow:
 	helm uninstall ${AIRFLOW_NAME}
@@ -104,7 +130,7 @@ remove-airflow:
 init-mlflow:
 	kubectl apply -f kubernetes_files/mlflow_db_creds.yml  -n ${K8S_NAMESPACE}
 	kubectl apply -f kubernetes_files/mlflow_pvcs.yml -n ${K8S_NAMESPACE}
-	bash create_postgres_db.sh ${K8S_NAMESPACE}	${mlflow_db_name} ${mlflow_db_secret_name}
+	bash utils/create_postgres_db/create_postgres_db.sh ${K8S_NAMESPACE}	${mlflow_db_name} ${mlflow_db_secret_name}
 	helm repo add community-charts https://community-charts.github.io/helm-charts
 	helm install ${MLFLOW_NAME} community-charts/mlflow\
 	 --namespace ${K8S_NAMESPACE}\
@@ -122,7 +148,7 @@ remove-mlflow:
 	kubectl delete -f  kubernetes_files/mlflow_pvcs.yml
 
 init-dataset-http-server:
-	bash project_data_prepare/http_serve.sh 9000 split_dataset/
+	bash utils/project_data_prepare/http_serve.sh 9000 split_dataset/ &
 
 
 init-adminer:
@@ -133,3 +159,39 @@ init-adminer:
 
 expose-adminer:
 	kubectl port-forward --address 0.0.0.0 svc/${ADMINER_NAME} 8880:8080 --namespace ${K8S_NAMESPACE} &
+
+init-kafka:
+	helm repo add kafka https://helm-charts.itboon.top/kafka/
+	helm install ${KAFKA_NAME} kafka/kafka\
+	 --namespace ${K8S_NAMESPACE}\
+	 -f kubernetes_files/kafka_values.yaml\
+	 --version 18.0.1
+
+expose-kafka-ui:
+	kubectl port-forward --address 0.0.0.0 svc/${KAFKA_NAME}-ui 8088:8080 --namespace ${K8S_NAMESPACE} &
+
+
+remove-kafka:
+	helm uninstall ${KAFKA_NAME}
+	ps -C "kubectl port-forward --address 0.0.0.0 svc/${KAFKA_NAME}" -o pid= | xargs kill -9
+
+init-inference-webserver:
+	kubectl apply -f kubernetes_files/inference_webserver_db_creds.yml  -n ${K8S_NAMESPACE}
+	-bash utils/create_postgres_db/create_postgres_db.sh ${K8S_NAMESPACE}\
+		${infernce_webserver_db_name} ${infernce_webserver_db_secret_name}
+	helm upgrade -i ${INFERENCE_WEBSERVER_NAME}\
+	 inference_webserver/helm_chart/inference_webserver\
+	 -f inference_webserver/helm_chart/inference_webserver/values.yaml
+	 --set postgres_db.db_name=${mlflow_db_name}\
+	 --set postgres_db.existing_db_secret.name=${mlflow_db_secret_name}
+	 
+
+expose-inference-webserver:
+	kubectl port-forward --address 0.0.0.0 svc/${INFERENCE_WEBSERVER_NAME}\
+	 8080:8080 --namespace ${K8S_NAMESPACE} &
+
+
+remove-inference-webservice:
+	helm uninstall ${INFERENCE_WEBSERVER_NAME}
+	ps -C "kubectl port-forward --address 0.0.0.0 svc/${INFERENCE_WEBSERVER_NAME}" -o pid= | xargs kill -9
+	
