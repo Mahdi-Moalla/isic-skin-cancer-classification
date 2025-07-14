@@ -122,6 +122,9 @@ init-airflow:
 expose-airflow:
 	kubectl port-forward --address 0.0.0.0 svc/${AIRFLOW_NAME}-webserver 8888:8080 --namespace ${K8S_NAMESPACE} &
 
+expose-postgres:
+	kubectl port-forward --address 0.0.0.0 svc/${AIRFLOW_NAME}-postgresql 5432:5432 --namespace ${K8S_NAMESPACE} &
+
 remove-airflow:
 	helm uninstall ${AIRFLOW_NAME}
 	ps -C "kubectl port-forward --address 0.0.0.0 svc/airflow" -o pid= | xargs kill -9
@@ -130,7 +133,7 @@ remove-airflow:
 init-mlflow:
 	kubectl apply -f kubernetes_files/mlflow_db_creds.yml  -n ${K8S_NAMESPACE}
 	kubectl apply -f kubernetes_files/mlflow_pvcs.yml -n ${K8S_NAMESPACE}
-	bash utils/create_postgres_db/create_postgres_db.sh ${K8S_NAMESPACE}	${mlflow_db_name} ${mlflow_db_secret_name}
+	bash utils/create_postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}	${mlflow_db_name} ${mlflow_db_secret_name}
 	helm repo add community-charts https://community-charts.github.io/helm-charts
 	helm install ${MLFLOW_NAME} community-charts/mlflow\
 	 --namespace ${K8S_NAMESPACE}\
@@ -177,7 +180,7 @@ remove-kafka:
 
 init-inference-webserver:
 	kubectl apply -f kubernetes_files/inference_webserver_db_creds.yml  -n ${K8S_NAMESPACE}
-	-bash utils/create_postgres_db/create_postgres_db.sh ${K8S_NAMESPACE}\
+	bash utils/create_postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
 		${infernce_webserver_db_name} ${infernce_webserver_db_secret_name}
 	helm upgrade -i ${INFERENCE_WEBSERVER_NAME}\
 	 inference_webserver/helm_chart/inference_webserver\
