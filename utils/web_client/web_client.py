@@ -46,7 +46,7 @@ def process_record(record,
                   'application/octet-stream')
     }
     
-    result=requests.post(webserver_uri+"/v1/upload_record",
+    result=requests.post(webserver_uri+"/v1/backend/upload_record",
                         files=data)
     print(result.text)
 

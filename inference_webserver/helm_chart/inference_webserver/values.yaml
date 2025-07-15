@@ -8,7 +8,8 @@ kafka:
   topic_num_partitions: 1
   topic_replication_factor: 1
 
-
+gateway:
+  name: inference-webservice
 
 postgres_db:
   host: airflow-service-postgresql
@@ -27,11 +28,15 @@ mlflow:
 inference:
   name:  isic-inference
   image: nvcr_pytorch_tensorrt_mod:latest
+  service_image: webserver:latest
+  service:
+    port: 8080
   best_model:
-    model_checkpoint_uri:  mlflow-artifacts:/1/74b3ec0fbf6443188566095d17c6156d/artifacts/best_finetune/best_finetune_1.ckpt
-    model_def_uri: mlflow-artifacts:/1/aa89bbb5599240179b8934c1af48d17c/artifacts/trainer/isic_model.py
-    model_config_uri: mlflow-artifacts:/1/aa89bbb5599240179b8934c1af48d17c/artifacts/trainer/config.py
-    preprocessor_def_uri: mlflow-artifacts:/1/aa89bbb5599240179b8934c1af48d17c/artifacts/data_preprocessor/preprocess_data.py
+    model_checkpoint_uri: mlflow-artifacts:/1/67f54226a0c44d40a58059c621a12cb6/artifacts/best_finetune/best_finetune_0.ckpt
+    model_def_uri: mlflow-artifacts:/1/ede2f346a35a41efac36c713abec84f7/artifacts/trainer/isic_model.py
+    model_config_uri: mlflow-artifacts:/1/ede2f346a35a41efac36c713abec84f7/artifacts/trainer/config.py
+    preprocessor_def_uri: mlflow-artifacts:/1/ede2f346a35a41efac36c713abec84f7/artifacts/data_preprocessor/preprocess_data.py
+
 
 
 backend:
@@ -44,7 +49,10 @@ backend:
 data_persistance:
   name: isic-data-persistance
   image: webserver:latest
+  service_image: webserver:latest
   images_folder: /home/images
   pvc:
    size:  5Gi
+  service:
+    port: 8080
 

@@ -40,7 +40,7 @@ producer = KafkaProducer(bootstrap_servers=[kafka_server],
 
 app = Flask(__name__)
 
-@app.route('/v1/upload_record', methods=['POST'])
+@app.route('/v1/backend/upload_record', methods=['POST'])
 def send_data():
     
     if 'json_record' not in request.files.keys() or\
@@ -87,6 +87,11 @@ def send_data():
     return jsonify({"message":"data received"})
 
 
-@app.route('/v1/test', methods=['GET'])
+@app.route('/v1/backend/test', methods=['GET'])
 def display_msg():
     return "welcome to isic backend"
+
+#@app.route('/v1/backend/redirect-example', methods=['GET'])
+#def display_msg():
+#    return redirect()
+

@@ -55,6 +55,12 @@ import scipy
 
 TRT_LOGGER = trt.Logger(trt.Logger.INFO)
 
+import sys
+sys.path.insert(0, '../db_interface/')
+
+from db_interface import (db_connector,
+                          db_isic_inference)
+
 
 def build_engine_onnx(model_file):
     builder = trt.Builder(TRT_LOGGER)
@@ -75,35 +81,6 @@ def build_engine_onnx(model_file):
     runtime = trt.Runtime(TRT_LOGGER)
     return runtime.deserialize_cuda_engine(engine_bytes)
 
-
-def run_query(psycopg_conn_str,
-              query):
-    print(query.strip())
-    with psycopg.connect(psycopg_conn_str, autocommit=True) as conn:
-        res = conn.execute(query)
-        print(res)
-    return res
-
-def create_table(psycopg_conn_str):
-    
-    create_table_query = """
-        CREATE TABLE IF NOT EXISTS isic_inference(
-            isic_id SERIAL PRIMARY KEY,
-            score REAL
-        );
-    """
-    run_query(psycopg_conn_str,
-              create_table_query)
-
-def insert_into_db(psycopg_conn_str,
-                   isic_id,
-                   score):
-    insert_query=f"""
-    insert into isic_inference (isic_id, score)
-    values ({isic_id}, {score});
-    """
-    run_query(psycopg_conn_str,
-              insert_query)
 
 
 def init_config():
@@ -150,7 +127,9 @@ def main(onnx_model_path='./model.onnx'):
 
     logging.info(data_persistance_config)
 
-    create_table(data_persistance_config.db.psycopg_conn_str)
+    db_isic_inference_interface=db_isic_inference(db_connector(data_persistance_config.db.psycopg_conn_str))    
+
+    db_isic_inference_interface.create_table()
 
 
     
@@ -221,9 +200,8 @@ def main(onnx_model_path='./model.onnx'):
 
             isic_id=int(json_record['isic_id'].split('_')[1])
 
-            insert_into_db(data_persistance_config.db.psycopg_conn_str,
-                           isic_id,
-                           score)
+            db_isic_inference_interface.insert_into_db(isic_id,
+                                                       score)
             
 
             logging.info(f"{json_record['isic_id']} record saved")

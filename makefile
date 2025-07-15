@@ -5,6 +5,7 @@ MLFLOW_NAME:=mlflow-service
 ADMINER_NAME:=adminer-service
 KAFKA_NAME:=kafka-service
 INFERENCE_WEBSERVER_NAME:=inference-webservice
+GLOO_GATEWAY:=gloo-gateway
 
 kube_config = create
 
@@ -94,6 +95,7 @@ microk8s-init-images:
 	docker pull kafkace/kafka:v3.7.1-63ba8d2
 	docker pull provectuslabs/kafka-ui:v0.7.2
 	docker pull docker.io/adminer:4.8.1-standalone
+	docker pull quay.io/solo-io/gloo:1.19.3
 
 	docker save apache/airflow:2.10.5 > airflow.tar
 	docker save docker.io/bitnami/postgresql:16.1.0-debian-11-r15 > postgresql.tar
@@ -101,6 +103,7 @@ microk8s-init-images:
 	docker save kafkace/kafka:v3.7.1-63ba8d2 > kafka.tar
 	docker save provectuslabs/kafka-ui:v0.7.2 > kafka_ui.tar
 	docker save docker.io/adminer:4.8.1-standalone > adminer.tar
+	docker save quay.io/solo-io/gloo:1.19.3 > gloo.tar
 
 	microk8s images import < airflow.tar
 	microk8s images import < postgresql.tar
@@ -108,8 +111,9 @@ microk8s-init-images:
 	microk8s images import < kafka.tar
 	microk8s images import < kafka_ui.tar
 	microk8s images import < adminer.tar
+	microk8s images import < gloo.tar
 
-	rm airflow.tar postgresql.tar mlflow.tar kafka.tar kafka_ui.tar adminer.tar
+	rm airflow.tar postgresql.tar mlflow.tar kafka.tar kafka_ui.tar adminer.tar gloo.tar
 
 init-airflow:
 	helm repo add apache-airflow https://airflow.apache.org
@@ -184,6 +188,7 @@ init-inference-webserver:
 		${infernce_webserver_db_name} ${infernce_webserver_db_secret_name}
 	helm upgrade -i ${INFERENCE_WEBSERVER_NAME}\
 	 inference_webserver/helm_chart/inference_webserver\
+	 --namespace ${K8S_NAMESPACE}\
 	 -f inference_webserver/helm_chart/inference_webserver/values.yaml
 	 --set postgres_db.db_name=${mlflow_db_name}\
 	 --set postgres_db.existing_db_secret.name=${mlflow_db_secret_name}
@@ -198,3 +203,19 @@ remove-inference-webservice:
 	helm uninstall ${INFERENCE_WEBSERVER_NAME}
 	ps -C "kubectl port-forward --address 0.0.0.0 svc/${INFERENCE_WEBSERVER_NAME}" -o pid= | xargs kill -9
 	
+
+
+init-gloo-gateway:
+	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
+	helm repo add gloo https://storage.googleapis.com/solo-public-helm
+	helm install ${GLOO_GATEWAY} gloo/gloo \
+	 --namespace ${K8S_NAMESPACE}\
+	 --version 1.19.3 \
+	 -f kubernetes_files/gloo_values.yml
+
+remove-gloo-gateway:
+	helm uninstall ${GLOO_GATEWAY}
+
+expose-gloo-gateway:
+	kubectl port-forward --address 0.0.0.0 svc/${INFERENCE_WEBSERVER_NAME}\
+	 8080:8080 --namespace ${K8S_NAMESPACE} &

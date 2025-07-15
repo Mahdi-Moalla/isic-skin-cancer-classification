@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.inference.name }}-service-deployment
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3      # number of previous versions to keep
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ .Values.inference.name }}-service
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.inference.name }}-service
+    spec:
+      initContainers:
+      - name: repo-clone
+        image: ubuntu_toolset:latest
+        imagePullPolicy: Never
+        command: ["bash"]
+
+        args:
+          - -c
+          - >-
+              cd /home &&
+              git clone {{ .Values.code_repo }} repo_code
+        
+        volumeMounts:
+        - mountPath: "/home"
+          name: homedir
+
+      containers:
+      - name: service
+        image: {{ .Values.inference.service_image }}
+        imagePullPolicy: Never
+        command: ["bash"]
+        ports:
+          - containerPort: 8080
+        args: ["/home/repo_code/inference_webserver/inference/run_service.sh"]
+        env:
+        
+        - name: postgres_server
+          value: {{ .Values.postgres_db.host }}
+        - name: postgres_port
+          value: "{{ .Values.postgres_db.port }}"
+        - name: postgres_db_name
+          value: {{ .Values.postgres_db.db_name }}
+        - name: postgres_db_user
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgres_db.existing_db_secret.name }}
+              key: {{ .Values.postgres_db.existing_db_secret.usernameKey }}
+        - name: postgres_db_password
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.postgres_db.existing_db_secret.name }}
+              key: {{ .Values.postgres_db.existing_db_secret.passwordKey }}
+
+
+        volumeMounts:
+        - mountPath: "/home"
+          name: homedir
+        
+      volumes: ###
+        - name: homedir
+          emptyDir: {}
+      

@@ -25,43 +25,14 @@ from PIL import  Image
 
 logging.basicConfig(level=logging.INFO, format="DATA-PERSISTANCE: %(asctime)s [%(levelname)s]: %(message)s")
 
+import sys
+from pathlib import Path
 
-def run_query(psycopg_conn_str,
-              query):
-    print(query.strip())
-    with psycopg.connect(psycopg_conn_str, autocommit=True) as conn:
-        res = conn.execute(query)
-        print(res)
-    return res
+import sys
+sys.path.insert(0, '../db_interface/')
 
-def create_table(psycopg_conn_str):
-    
-    create_table_query = """
-        CREATE TABLE IF NOT EXISTS isic_data(
-            isic_id SERIAL PRIMARY KEY,
-            patient_id SERIAL,
-            target INTEGER,
-            created_at TIMESTAMP NOT NULL,
-            record JSON NOT NULL
-        );
-    """
-    run_query(psycopg_conn_str,
-              create_table_query)
-
-def insert_into_db(psycopg_conn_str,
-                   record):
-    isic_id=int(record["isic_id"].split("_")[1])
-    patient_id=int(record["patient_id"].split("_")[1])
-    target=None
-    if 'target' in record.keys():
-        target=record['target']
-    
-    insert_query=f"""
-    insert into isic_data (isic_id, patient_id, target, created_at, record)
-    values ({isic_id}, {patient_id}, {'null' if target is None else target}, '{record['timestamp']}' ,'{json.dumps(record).replace('NaN','null')}');
-    """
-    run_query(psycopg_conn_str,
-              insert_query)
+from db_interface import (db_connector,
+                          db_isic_data)
 
 
 def init_config():
@@ -119,7 +90,9 @@ def main():
 
     logging.info(data_persistance_config)
 
-    create_table(data_persistance_config.db.psycopg_conn_str)
+    db_isic_data_interface=db_isic_data(db_connector(data_persistance_config.db.psycopg_conn_str))
+
+    db_isic_data_interface.create_table()
 
     shutil.rmtree(data_persistance_config.images_folder,  ignore_errors=True)
     os.makedirs(data_persistance_config.images_folder, exist_ok=True)
@@ -149,8 +122,7 @@ def main():
 
             json_record=json.loads( record['json_record'] )
 
-            insert_into_db(data_persistance_config.db.psycopg_conn_str,
-                            json_record)
+            db_isic_data_interface.insert_into_db(json_record)
 
             image_output_path=osp.join(data_persistance_config.images_folder,
                             f"{json_record['isic_id']}.png")

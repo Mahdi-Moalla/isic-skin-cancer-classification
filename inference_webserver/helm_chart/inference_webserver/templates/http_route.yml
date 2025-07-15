@@ -1,0 +1,32 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ .Values.gateway.name }}-router
+  namespace: {{ .Values.namespace }}
+spec:
+  parentRefs:
+    - name: {{ .Values.gateway.name }}
+      namespace: {{ .Values.namespace }}
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /v1/backend
+    backendRefs:
+    - name: {{ .Release.Name }}-backend
+      port: 8080
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /v1/data-persistance
+    backendRefs:
+    - name: {{ .Release.Name }}-data-persistance
+      port: 8080
+
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /v1/inference
+    backendRefs:
+    - name: {{ .Release.Name }}-inference
+      port: 8080

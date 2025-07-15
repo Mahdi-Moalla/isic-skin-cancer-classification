@@ -1,0 +1,13 @@
+kind: Gateway
+apiVersion: gateway.networking.k8s.io/v1
+metadata:
+  name: {{ .Values.gateway.name }}
+spec:
+  gatewayClassName: gloo-gateway
+  listeners:
+  - protocol: HTTP
+    port: 8080
+    name: {{ .Values.gateway.name }}-listener
+    allowedRoutes:
+      namespaces:
+        from: All
