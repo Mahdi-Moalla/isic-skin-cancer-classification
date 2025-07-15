@@ -8,7 +8,6 @@ kafka:
   topic_num_partitions: 1
   topic_replication_factor: 1
 
-isic_schema_file: isic_record.avsc
 
 
 postgres_db:
@@ -29,15 +28,16 @@ inference:
   name:  isic-inference
   image: nvcr_pytorch_tensorrt_mod:latest
   best_model:
-    model_checkpoint_uri:  mlflow-artifacts:/1/d496d71a14544584913114655b6f6771/artifacts/best_finetune/best_finetune_0.ckpt
-    model_def_uri: mlflow-artifacts:/1/22c2f1bcd7454418b8d1ef02b83d044d/artifacts/trainer/isic_model.py
-    model_config_uri: mlflow-artifacts:/1/22c2f1bcd7454418b8d1ef02b83d044d/artifacts/trainer/config.py
-    preprocessor_def_uri: mlflow-artifacts:/1/22c2f1bcd7454418b8d1ef02b83d044d/artifacts/data_preprocessor/preprocess_data.py
+    model_checkpoint_uri:  mlflow-artifacts:/1/74b3ec0fbf6443188566095d17c6156d/artifacts/best_finetune/best_finetune_1.ckpt
+    model_def_uri: mlflow-artifacts:/1/aa89bbb5599240179b8934c1af48d17c/artifacts/trainer/isic_model.py
+    model_config_uri: mlflow-artifacts:/1/aa89bbb5599240179b8934c1af48d17c/artifacts/trainer/config.py
+    preprocessor_def_uri: mlflow-artifacts:/1/aa89bbb5599240179b8934c1af48d17c/artifacts/data_preprocessor/preprocess_data.py
 
 
-webserver:
-  name: isic-webserver
+backend:
+  name: isic-backend
   image: webserver:latest
+  isic_schema_file: isic_record.avsc
   service:
     port: 8080
   
@@ -47,3 +47,4 @@ data_persistance:
   images_folder: /home/images
   pvc:
    size:  5Gi
+

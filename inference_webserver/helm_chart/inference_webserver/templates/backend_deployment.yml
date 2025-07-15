@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ .Values.webserver.name }}-deployment
+  name: {{ .Values.backend.name }}-deployment
   namespace: {{ .Values.namespace }}
 spec:
   replicas: 1
@@ -10,11 +10,11 @@ spec:
     type: Recreate
   selector:
     matchLabels:
-      app: {{ .Values.webserver.name }}
+      app: {{ .Values.backend.name }}
   template:
     metadata:
       labels:
-        app: {{ .Values.webserver.name }}
+        app: {{ .Values.backend.name }}
     spec:
       initContainers:
       - name: repo-clone
@@ -34,10 +34,10 @@ spec:
 
       containers:
       - name: webserver
-        image: {{ .Values.webserver.image }}
+        image: {{ .Values.backend.image }}
         imagePullPolicy: Never
         command: ["bash"]
-        args: ["/home/repo_code/inference_webserver/webserver/run_webserver.sh"]
+        args: ["/home/repo_code/inference_webserver/backend/run_backend.sh"]
         ports:
           - containerPort: 8080
         env:
@@ -50,7 +50,7 @@ spec:
         - name: kafka_topic_replication_factor
           value: "{{ .Values.kafka.topic_replication_factor }}"
         - name: isic_schema_file
-          value: {{ .Values.isic_schema_file }}
+          value: {{ .Values.backend.isic_schema_file }}
         
         volumeMounts:
         - mountPath: "/home"

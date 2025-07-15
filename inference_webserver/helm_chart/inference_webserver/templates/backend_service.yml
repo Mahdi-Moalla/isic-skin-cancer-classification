@@ -5,8 +5,8 @@ metadata:
   namespace: {{ .Values.namespace }}
 spec:
   selector:
-    app: {{ .Values.webserver.name }}
+    app: {{ .Values.backend.name }}
   ports:
     - protocol: TCP
-      port: {{ .Values.webserver.service.port }}
+      port: {{ .Values.backend.service.port }}
       targetPort: 8080

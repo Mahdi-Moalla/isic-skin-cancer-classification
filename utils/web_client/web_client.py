@@ -7,7 +7,7 @@ import  pandas as pd
 import  numpy as np
 import h5py
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from PIL import Image
 import io
@@ -19,9 +19,11 @@ from avro.io import DatumWriter, DatumReader
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]: %(message)s")
 
 
-def process_record(record):
+def process_record(record,
+                   date):
+    record=record.to_dict()
     isic_id=record['isic_id']
-    record['timestamp']=str( datetime(2025,1,1,0,0,0) )
+    record['timestamp']=str( date )
     logging.info(isic_id)
     logging.info(f'target= {record['target']}')
 
@@ -46,51 +48,45 @@ def process_record(record):
                         files=data)
     print(result.text)
 
-    # avro_record={
-    #     'image':image_bytes,
-    #     'json_record':json.dumps(record).replace("NaN","null")
-    # }
 
-    # with open('isic_record.avsc','r') as f:
-    #     schema = avro.schema.parse(f.read())
-    
-    # output_buffer = io.BytesIO()
+def upload_month_data(metadata_df):
+    pos_data=metadata_df[ metadata_df['target']==1  ]
+    neg_data=metadata_df[ metadata_df['target']==0  ]
 
-    # writer = DataFileWriter(output_buffer,
-    #                         DatumWriter(), 
-    #                         schema)
+    curr_day=datetime(2025,1,1,0,0,0)
+    pos_i=0
+    neg_i=0
+    for i in range(31):
 
-    # writer.append(avro_record)
-    # writer.flush()
-    # output_bytes=output_buffer.getvalue()
-    # writer.close()
+        process_record(pos_data.iloc[pos_i],
+                       curr_day)
+        pos_i+=1
+        if i%2==0:
+            process_record(pos_data.iloc[pos_i],
+                       curr_day)
+            pos_i+=1
 
+        n_neg=np.random.randint(low=15,high=20)
 
-
-    # print(output_bytes)
-
-    # reader = DataFileReader(io.BytesIO(output_bytes), 
-    #                         DatumReader())
-
-    # for record in reader:
-    #     print(record.keys())
+        for _ in range(n_neg):
+            process_record(neg_data.iloc[neg_i],
+                           curr_day)
+            neg_i+=1
         
-    #     pil_image = Image.open( io.BytesIO(record['image']) )
+        curr_day+=timedelta(days=1)
+        
 
-    #     json_record=json.loads( record['json_record'] )
+def upload_random_data(metadata_df):
 
-    #     print(pil_image.size)
-    #     print(json_record.keys())
-
-
+    idx=np.random.randint(len(metadata_df))
+    curr_day=datetime(2025,3,1,0,0,0)
+    process_record(metadata_df.iloc[idx],
+                           curr_day)
+            
 
 if __name__=='__main__':
 
     metadata_df=pd.read_csv('test-metadata.csv',
                             low_memory=False)
-
-    idx=np.random.randint(len(metadata_df))
-
-    record=metadata_df.iloc[idx].to_dict()
-
-    process_record(record)
+    
+    upload_random_data(metadata_df)

@@ -6,7 +6,7 @@ import logging
 
 from PIL import  Image
 
-logging.basicConfig(level=logging.INFO, format="WEBSERVER: %(asctime)s [%(levelname)s]: %(message)s")
+logging.basicConfig(level=logging.INFO, format="BACKEND: %(asctime)s [%(levelname)s]: %(message)s")
 
 from flask import (Flask,
                    jsonify, 
@@ -86,6 +86,7 @@ def send_data():
 
     return jsonify({"message":"data received"})
 
+
 @app.route('/v1/test', methods=['GET'])
 def display_msg():
-    return "welcome to isic web server"
+    return "welcome to isic backend"
