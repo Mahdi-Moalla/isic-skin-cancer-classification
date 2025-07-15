@@ -1,0 +1,6 @@
+inference:
+  best_model:
+    model_checkpoint_uri: mlflow-artifacts:/1/d829fee0ae23400dbd5f6eeeb356b935/artifacts/best_finetune/best_finetune_0.ckpt
+    model_def_uri: mlflow-artifacts:/1/6a87b0b93e734172b6adadd3473aee94/artifacts/trainer/isic_model.py
+    model_config_uri: mlflow-artifacts:/1/6a87b0b93e734172b6adadd3473aee94/artifacts/trainer/config.py
+    preprocessor_def_uri: mlflow-artifacts:/1/6a87b0b93e734172b6adadd3473aee94/artifacts/data_preprocessor/preprocess_data.py

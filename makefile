@@ -189,19 +189,20 @@ init-inference-webserver:
 	helm upgrade -i ${INFERENCE_WEBSERVER_NAME}\
 	 inference_webserver/helm_chart/inference_webserver\
 	 --namespace ${K8S_NAMESPACE}\
-	 -f inference_webserver/helm_chart/inference_webserver/values.yaml
+	 -f inference_webserver/helm_chart/inference_webserver/values.yaml\
 	 --set postgres_db.db_name=${mlflow_db_name}\
-	 --set postgres_db.existing_db_secret.name=${mlflow_db_secret_name}
+	 --set postgres_db.existing_db_secret.name=${mlflow_db_secret_name}\
+	 -f kubernetes_files/inference_webserver_mlflow_artifacts.yml
 	 
 
 expose-inference-webserver:
-	kubectl port-forward --address 0.0.0.0 svc/${INFERENCE_WEBSERVER_NAME}\
+	kubectl port-forward --address 0.0.0.0 svc/gloo-proxy-${INFERENCE_WEBSERVER_NAME}\
 	 8080:8080 --namespace ${K8S_NAMESPACE} &
 
 
 remove-inference-webservice:
 	helm uninstall ${INFERENCE_WEBSERVER_NAME}
-	ps -C "kubectl port-forward --address 0.0.0.0 svc/${INFERENCE_WEBSERVER_NAME}" -o pid= | xargs kill -9
+	ps -C "kubectl port-forward --address 0.0.0.0 svc/gloo-proxy-${INFERENCE_WEBSERVER_NAME}" -o pid= | xargs kill -9
 	
 
 
@@ -219,3 +220,6 @@ remove-gloo-gateway:
 expose-gloo-gateway:
 	kubectl port-forward --address 0.0.0.0 svc/${INFERENCE_WEBSERVER_NAME}\
 	 8080:8080 --namespace ${K8S_NAMESPACE} &
+
+init-apps: init-dataset-http-server init-airflow init-adminer init-mlflow init-kafka init-gloo-gateway expose-airflow expose-adminer expose-mlflow expose-kafka-ui
+	echo "apps installed"
