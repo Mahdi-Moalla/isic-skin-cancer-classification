@@ -16,6 +16,8 @@ import avro.schema
 from avro.datafile import DataFileWriter, DataFileReader
 from avro.io import DatumWriter, DatumReader
 
+import fire
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]: %(message)s")
 
 
@@ -49,7 +51,10 @@ def process_record(record,
     print(result.text)
 
 
-def upload_month_data(metadata_df):
+def upload_month_data():
+    metadata_df=pd.read_csv('test-metadata.csv',
+                            low_memory=False)
+    
     pos_data=metadata_df[ metadata_df['target']==1  ]
     neg_data=metadata_df[ metadata_df['target']==0  ]
 
@@ -76,17 +81,18 @@ def upload_month_data(metadata_df):
         curr_day+=timedelta(days=1)
         
 
-def upload_random_data(metadata_df):
-
-    idx=np.random.randint(len(metadata_df))
-    curr_day=datetime(2025,3,1,0,0,0)
-    process_record(metadata_df.iloc[idx],
-                           curr_day)
-            
-
-if __name__=='__main__':
+def upload_random_data(count):
 
     metadata_df=pd.read_csv('test-metadata.csv',
                             low_memory=False)
     
-    upload_random_data(metadata_df)
+    curr_day=datetime(2025,3,1,0,0,0)
+    for _ in range(count):
+        idx=np.random.randint(len(metadata_df))
+        process_record(metadata_df.iloc[idx],
+                            curr_day)
+            
+
+if __name__=='__main__':
+
+    fire.Fire()

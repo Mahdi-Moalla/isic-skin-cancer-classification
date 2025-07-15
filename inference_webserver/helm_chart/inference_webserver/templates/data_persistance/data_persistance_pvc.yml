@@ -3,8 +3,8 @@ kind: PersistentVolumeClaim
 metadata:
   name: {{ .Values.data_persistance.name }}-pvc
   namespace: {{ .Values.namespace }}
-  annotations:
-    helm.sh/resource-policy: keep
+  #annotations:
+  #  helm.sh/resource-policy: keep
 spec:
   accessModes:
     - ReadWriteOnce

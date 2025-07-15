@@ -33,7 +33,7 @@ spec:
           name: homedir
 
       containers:
-      - name: webserver
+      - name: backend
         image: {{ .Values.backend.image }}
         imagePullPolicy: Never
         command: ["bash"]
