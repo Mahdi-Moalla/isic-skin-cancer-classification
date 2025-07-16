@@ -55,8 +55,9 @@ import scipy
 
 TRT_LOGGER = trt.Logger(trt.Logger.INFO)
 
+
 import sys
-sys.path.insert(0, '../db_interface/')
+sys.path.insert(0, '../db_interface')
 
 from db_interface import (db_connector,
                           db_isic_inference)

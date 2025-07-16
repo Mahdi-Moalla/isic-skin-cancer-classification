@@ -2,12 +2,14 @@ import psycopg
 import logging
 import json
 
-
+from datetime import datetime
 
 class  db_connector:
     def __init__(self,psycopg_conn_str):
         self.psycopg_conn_str=psycopg_conn_str
-        self.conn=psycopg.connect(self.psycopg_conn_str, autocommit=True)
+        self.conn=psycopg.connect(self.psycopg_conn_str, 
+                                  autocommit=True,
+                                  row_factory=psycopg.rows.dict_row)
 
     def __del__(self):
         self.conn.close()
@@ -53,6 +55,60 @@ class db_isic_data:
         """
         self.db_connector.sql_query(insert_query)
 
+    def query_single_record(self, isic_id):
+
+        query=f"""
+        SELECT * FROM isic_data
+        WHERE isic_id={isic_id}
+        """
+        res_cur=self.db_connector.sql_query(query)
+        return res_cur.fetchone()
+    
+    def query_multi_records(self, isic_ids: list):
+
+        query=f"""
+        SELECT * FROM isic_data
+        WHERE isic_id IN ({','.join( [ str(x) for x in isic_ids ] )})
+        """
+        res_cur=self.db_connector.sql_query(query)
+        return res_cur.fetchall()
+    
+    def query_records_by_timestamp(self,
+                                   start_timestamp: datetime,
+                                   end_timestamp: datetime):
+
+        query=f"""
+        SELECT * FROM isic_data
+        WHERE created_at BETWEEN '{str(start_timestamp)}' AND '{str(end_timestamp)}'
+        """
+        res_cur=self.db_connector.sql_query(query)
+        return res_cur.fetchall()
+    
+    def query_records_by_day(self,
+                             date: datetime):
+        
+        date_str=date.strftime("%Y-%m-%d")
+        query=f"""
+        SELECT * FROM isic_data
+        WHERE created_at BETWEEN '{date_str} 00:00:00' AND '{date_str} 23:59:59'
+        """
+        res_cur=self.db_connector.sql_query(query)
+        return res_cur.fetchall()
+    
+    def query_records_with_score_by_day(self,
+                             date: datetime):
+        
+        date_str=date.strftime("%Y-%m-%d")
+        query=f"""
+        SELECT * 
+        FROM isic_data as d
+        LEFT JOIN isic_inference as i
+        ON d.isic_id=i.isic_id
+        WHERE d.created_at BETWEEN '{date_str} 00:00:00' AND '{date_str} 23:59:59'
+        """
+        res_cur=self.db_connector.sql_query(query)
+        return res_cur.fetchall()
+
 
 
 class db_isic_inference:
@@ -80,8 +136,22 @@ class db_isic_inference:
             """
         self.db_connector.sql_query(insert_query)
 
+    def query_single_record(self, isic_id):
 
+        query=f"""
+        SELECT * FROM isic_inference
+        WHERE isic_id={isic_id}
+        """
+        res_cur=self.db_connector.sql_query(query)
+        return res_cur.fetchone()
+    
+    def query_multi_records(self, isic_ids: list):
 
-
+        query=f"""
+        SELECT * FROM isic_inference
+        WHERE isic_id IN ({','.join( [ str(x) for x in isic_ids ] )})
+        """
+        res_cur=self.db_connector.sql_query(query)
+        return res_cur.fetchall()
 
 

@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 K8S_NAMESPACE:=isic-skin-cancer-classification
 
 AIRFLOW_NAME:=airflow-service
@@ -17,8 +19,8 @@ webserver_docker_image:=webserver:latest
 mlflow_db_name:=mlflow_db
 mlflow_db_secret_name:=mlflow-db-secret
 
-infernce_webserver_db_name:=inference_webserver_db
-infernce_webserver_db_secret_name:=inference-webserver-db-secret
+inference_webserver_db_name:=inference_webserver_db
+inference_webserver_db_secret_name:=inference-webserver-db-secret
 
 
 init-microk8s:
@@ -36,9 +38,8 @@ else ifeq ($(kube_config), create)
 	microk8s config > ~/.kube/config
 endif
 
-setup-cluster:
+init-cluster:
 	microk8s start
-	microk8s status --wait-ready
 	microk8s enable hostpath-storage
 	microk8s  enable dns
 	microk8s enable nvidia
@@ -185,13 +186,13 @@ remove-kafka:
 init-inference-webserver:
 	kubectl apply -f kubernetes_files/inference_webserver_db_creds.yml  -n ${K8S_NAMESPACE}
 	bash utils/create_postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
-		${infernce_webserver_db_name} ${infernce_webserver_db_secret_name}
+		${inference_webserver_db_name} ${inference_webserver_db_secret_name}
 	helm upgrade -i ${INFERENCE_WEBSERVER_NAME}\
 	 inference_webserver/helm_chart/inference_webserver\
 	 --namespace ${K8S_NAMESPACE}\
 	 -f inference_webserver/helm_chart/inference_webserver/values.yaml\
-	 --set postgres_db.db_name=${mlflow_db_name}\
-	 --set postgres_db.existing_db_secret.name=${mlflow_db_secret_name}\
+	 --set postgres_db.db_name=${inference_webserver_db_name}\
+	 --set postgres_db.existing_db_secret.name=${inference_webserver_db_secret_name}\
 	 -f kubernetes_files/inference_webserver_mlflow_artifacts.yml
 	 
 
@@ -217,9 +218,6 @@ init-gloo-gateway:
 remove-gloo-gateway:
 	helm uninstall ${GLOO_GATEWAY}
 
-expose-gloo-gateway:
-	kubectl port-forward --address 0.0.0.0 svc/${INFERENCE_WEBSERVER_NAME}\
-	 8080:8080 --namespace ${K8S_NAMESPACE} &
 
 init-apps: init-dataset-http-server init-airflow init-adminer init-mlflow init-kafka init-gloo-gateway expose-airflow expose-adminer expose-mlflow expose-kafka-ui
 	echo "apps installed"

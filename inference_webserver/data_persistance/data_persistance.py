@@ -29,7 +29,7 @@ import sys
 from pathlib import Path
 
 import sys
-sys.path.insert(0, '../db_interface/')
+sys.path.insert(0, '../db_interface')
 
 from db_interface import (db_connector,
                           db_isic_data)
