@@ -214,3 +214,5 @@ inference_webserver/*.ckpt
 utils/web_client/*.csv
 utils/web_client/*.hdf5
 
+inference_webserver_db.sql
+inference_webserver_no_db_create.sql

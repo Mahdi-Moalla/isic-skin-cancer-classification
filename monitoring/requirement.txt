@@ -1,0 +1,9 @@
+evidently==0.6.7
+psycopg
+psycopg_binary
+pillow
+pandas
+tqdm
+requests
+fire
+addict

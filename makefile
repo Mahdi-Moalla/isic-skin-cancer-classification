@@ -19,6 +19,10 @@ webserver_docker_image:=webserver:latest
 mlflow_db_name:=mlflow_db
 mlflow_db_secret_name:=mlflow-db-secret
 
+monitoring_db_name:=monitoring_db
+monitoring_db_secret_name:=monitoring-db-secret
+
+
 inference_webserver_db_name:=inference_webserver_db
 inference_webserver_db_secret_name:=inference-webserver-db-secret
 
@@ -134,11 +138,23 @@ remove-airflow:
 	helm uninstall ${AIRFLOW_NAME}
 	ps -C "kubectl port-forward --address 0.0.0.0 svc/airflow" -o pid= | xargs kill -9
 
+init-dbs:
+	kubectl apply -f kubernetes_files/mlflow_db_creds.yml  -n ${K8S_NAMESPACE}
+	bash utils/create_postgres_db/create_postgres_db_psql.sh\
+	 ${K8S_NAMESPACE} ${mlflow_db_name} ${mlflow_db_secret_name}
+	kubectl apply -f kubernetes_files/monitoring_db_creds.yml\
+	  -n ${K8S_NAMESPACE}
+	bash utils/create_postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
+		${monitoring_db_name} ${monitoring_db_secret_name}
+	kubectl apply -f kubernetes_files/inference_webserver_db_creds.yml\
+	  -n ${K8S_NAMESPACE}
+	bash utils/create_postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
+		${inference_webserver_db_name} ${inference_webserver_db_secret_name}
+
+
 
 init-mlflow:
-	kubectl apply -f kubernetes_files/mlflow_db_creds.yml  -n ${K8S_NAMESPACE}
 	kubectl apply -f kubernetes_files/mlflow_pvcs.yml -n ${K8S_NAMESPACE}
-	bash utils/create_postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}	${mlflow_db_name} ${mlflow_db_secret_name}
 	helm repo add community-charts https://community-charts.github.io/helm-charts
 	helm install ${MLFLOW_NAME} community-charts/mlflow\
 	 --namespace ${K8S_NAMESPACE}\
@@ -184,9 +200,6 @@ remove-kafka:
 	ps -C "kubectl port-forward --address 0.0.0.0 svc/${KAFKA_NAME}" -o pid= | xargs kill -9
 
 init-inference-webserver:
-	kubectl apply -f kubernetes_files/inference_webserver_db_creds.yml  -n ${K8S_NAMESPACE}
-	bash utils/create_postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
-		${inference_webserver_db_name} ${inference_webserver_db_secret_name}
 	helm upgrade -i ${INFERENCE_WEBSERVER_NAME}\
 	 inference_webserver/helm_chart/inference_webserver\
 	 --namespace ${K8S_NAMESPACE}\
@@ -206,7 +219,6 @@ remove-inference-webservice:
 	ps -C "kubectl port-forward --address 0.0.0.0 svc/gloo-proxy-${INFERENCE_WEBSERVER_NAME}" -o pid= | xargs kill -9
 	
 
-
 init-gloo-gateway:
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
 	helm repo add gloo https://storage.googleapis.com/solo-public-helm
@@ -218,6 +230,5 @@ init-gloo-gateway:
 remove-gloo-gateway:
 	helm uninstall ${GLOO_GATEWAY}
 
-
-init-apps: init-dataset-http-server init-airflow init-adminer init-mlflow init-kafka init-gloo-gateway expose-airflow expose-adminer expose-mlflow expose-kafka-ui
+init-apps: init-airflow init-dataset-http-server init-dbs init-adminer init-mlflow init-kafka init-gloo-gateway expose-airflow expose-adminer expose-mlflow expose-kafka-ui
 	echo "apps installed"

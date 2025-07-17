@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: monitoring-db-secret
+  namespace: isic-skin-cancer-classification
+data:
+  username: bW9uaXRvcmluZ191c2VyCg==
+  password: bW9uaXRvcmluZ19wYXNzCg==
