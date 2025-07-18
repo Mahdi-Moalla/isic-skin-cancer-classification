@@ -10,8 +10,6 @@ warnings.filterwarnings("ignore")
 
 from addict import Dict
 
-import numpy as np
-import pandas as pd
 
 import torch
 from torch.utils.data import DataLoader
@@ -35,13 +33,74 @@ from scorer import binary_auroc_scorer
 
 import mlflow
 
+import numpy as np
+import pandas as pd
+import h5py
+from  PIL import Image, ImageStat
+from tqdm import tqdm
+
+def log_train_data(metadata_file,
+                   image_file,
+                   isic_ids):
+    
+    hist_bins=int(os.getenv("monitoring_img_hist_bins",
+                        50))
+    
+    bins=np.arange(0,256,hist_bins)
+    bins[-1]=255
+    
+    
+    metadata=pd.read_csv(metadata_file,
+                         low_memory=False)
+    isic_id_lut={ idx:k  for k,idx in enumerate(metadata['isic_id'])  }
+    
+    final_data=[]
+
+    with h5py.File(image_file, 'r') as f_img:
+        for isic_id in tqdm(isic_ids):
+            record = Dict( metadata.iloc[isic_id_lut[isic_id]].to_dict() )
+
+            assert isic_id == record.isic_id
+            
+            img_np = f_img[isic_id][()].transpose(1,2,0)
+            img=Image.fromarray(img_np)
+            
+            img_np=np.array(img)
+
+            band_count=img_np.size//3
+
+            stats = ImageStat.Stat(img)
+
+            for j, color in enumerate(['r','g','b']):
+                record[f"img_{color}_mean"]=stats.mean[j]
+                record[f"img_{color}_std"]=stats.stddev[j]
+
+                hist=np.histogram(img_np[...,j], bins)[0]/band_count
+                for k in  range(len(hist)):
+                    record[f"img_{color}_hist_{bins[k]}_{bins[k+1]}"]=hist[k].item()
+        
+            final_data.append( record.to_dict() )
+
+    
+    final_data_df = pd.DataFrame(final_data)
+    final_data_df.to_parquet('monitoring_reference_data.parquet')
+
+    
+    mlflow.log_artifact('monitoring_reference_data.parquet',
+                        'monitoring_reference_data')
+    
+    os.remove('monitoring_reference_data.parquet')
+    
+
 def prepare_data(config, 
                  X_train, 
                  X_val,
                  train_transforms,
                  val_transforms):
     
-
+    log_train_data(osp.join(config.data_dir,'train-metadata.csv'),
+                   osp.join(config.data_dir,'train-image.hdf5'),
+                   isic_ids=X_train.tolist()) 
 
     train_dataset=isic_skin_cancer_datset(osp.join(config.data_dir,'train-metadata.csv'),
                                           osp.join(config.data_dir,'train-image.hdf5'),
@@ -137,6 +196,13 @@ def fold_train(config,
     best_model_path=osp.join(config.checkpoints_dir,f'best_finetune_{fold_i}.ckpt')
     mlflow.log_artifact(best_model_path,
                         artifact_path="best_finetune")
+    
+    final_model = isic_classifier.load_from_checkpoint(best_model_path,
+                                                 config=config, 
+                                                 train_mode='finetuning')
+    mlflow.pytorch.log_model(final_model,
+                             name="fold_best")
+    
     
     
 

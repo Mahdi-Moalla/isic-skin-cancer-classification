@@ -21,6 +21,12 @@ spec:
               configMapKeyRef:
                 name: training-pipeline-cfgmap
                 key: preprocessed_dataset_folder
+        - name: monitoring_img_hist_bins
+          valueFrom:
+              configMapKeyRef:
+                name: system-cfgmap
+                key: monitoring_img_hist_bins
+          
       resources:
         limits:
           nvidia.com/gpu: 1

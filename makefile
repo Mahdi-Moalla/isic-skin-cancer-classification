@@ -231,4 +231,5 @@ remove-gloo-gateway:
 	helm uninstall ${GLOO_GATEWAY}
 
 init-apps: init-airflow init-dataset-http-server init-dbs init-adminer init-mlflow init-kafka init-gloo-gateway expose-airflow expose-adminer expose-mlflow expose-kafka-ui
+	kubectl apply -f kubernetes_files/system_cfgmap.yml -n ${K8S_NAMESPACE}
 	echo "apps installed"

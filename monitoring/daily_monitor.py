@@ -75,7 +75,9 @@ def init_config():
     #monitoring_config.hist_bins=\
     #    int(os.getenv("hist_bins",25))
     
-
+    monitoring_config.monitoring_img_hist_bins=\
+        int(os.getenv("monitoring_img_hist_bins",
+                        50))
 
     return monitoring_config
 
@@ -101,7 +103,8 @@ def  main():
 
     data=Dict(response.json())
 
-    bins=np.arange(0,256,HIST_BINS)
+    bins=np.arange(0,256,
+        monitoring_config.monitoring_img_hist_bins)
     bins[-1]=255
     
     data_pd=[]
