@@ -259,9 +259,9 @@ def main(data_dir='/workspace/data',
         
         mlflow.pytorch.autolog()
 
-        from config import (config,
-                            train_transforms,
-                            val_transforms)
+        from config import config
+        from transforms import train_transforms, val_transforms
+        
         mlflow.log_dict(config.to_dict(), "trainer_config.json")
         
         

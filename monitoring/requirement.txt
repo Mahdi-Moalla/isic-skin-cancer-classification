@@ -3,7 +3,9 @@ psycopg
 psycopg_binary
 pillow
 pandas
+pyarrow
 tqdm
 requests
 fire
 addict
+mlflow-skinny==3.1.1

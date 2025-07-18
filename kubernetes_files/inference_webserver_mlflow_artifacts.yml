@@ -1,7 +1,7 @@
 inference:
   best_model:
-    model_checkpoint_uri: mlflow-artifacts:/1/4bf24ec603794c779e4f401a3f0018d0/artifacts/best_finetune/best_finetune_0.ckpt
-    model_def_uri: mlflow-artifacts:/1/4c71086a27374fba91c7ae4fb0fbf607/artifacts/trainer/isic_model.py
-    model_config_uri: mlflow-artifacts:/1/4c71086a27374fba91c7ae4fb0fbf607/artifacts/trainer/config.py
-    preprocessor_def_uri: mlflow-artifacts:/1/4c71086a27374fba91c7ae4fb0fbf607/artifacts/data_preprocessor/preprocess_data.py
+    model_checkpoint_uri: mlflow-artifacts:/1/0acf699c52604669a8ea2b3682a75e78/artifacts/best_finetune/best_finetune_0.ckpt
+    model_def_uri: mlflow-artifacts:/1/e00b740317ca4dfd96de57b75e850b2c/artifacts/trainer/isic_model.py
+    model_config_uri: mlflow-artifacts:/1/e00b740317ca4dfd96de57b75e850b2c/artifacts/trainer/config.py
+    preprocessor_def_uri: mlflow-artifacts:/1/e00b740317ca4dfd96de57b75e850b2c/artifacts/data_preprocessor/preprocess_data.py
 

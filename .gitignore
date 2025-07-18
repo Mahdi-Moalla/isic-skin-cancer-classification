@@ -218,3 +218,5 @@ inference_webserver_db.sql
 inference_webserver_no_db_create.sql
 
 *.parquet
+
+monitoring/*.parquet
