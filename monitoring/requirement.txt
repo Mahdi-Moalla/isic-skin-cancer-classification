@@ -1,6 +1,7 @@
 evidently==0.6.7
 psycopg
 psycopg_binary
+sqlalchemy
 pillow
 pandas
 pyarrow

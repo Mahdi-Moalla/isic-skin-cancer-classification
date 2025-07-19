@@ -220,15 +220,5 @@ inference_webserver_no_db_create.sql
 *.parquet
 
 monitoring/*.parquet
-monitoring/model/*
-monitoring/model/*/*
 
-
-monitoring/config.py
-monitoring/model/MLmodel
-monitoring/model/conda.yaml
-monitoring/model/data/model.pth
-monitoring/model/data/pickle_module_info.txt
-monitoring/model/python_env.yaml
-monitoring/model/registered_model_meta
-monitoring/model/requirements.txt
+monitoring_db.sql

@@ -8,6 +8,7 @@ ADMINER_NAME:=adminer-service
 KAFKA_NAME:=kafka-service
 INFERENCE_WEBSERVER_NAME:=inference-webservice
 GLOO_GATEWAY:=gloo-gateway
+GRAFANA_NAME=grafana-service
 
 kube_config = create
 
@@ -101,6 +102,7 @@ init-images:
 	docker pull provectuslabs/kafka-ui:v0.7.2
 	docker pull docker.io/adminer:4.8.1-standalone
 	docker pull quay.io/solo-io/gloo:1.19.3
+	docker pull docker.io/grafana/grafana:12.0.2
 
 	docker save apache/airflow:2.10.5 > airflow.tar
 	docker save docker.io/bitnami/postgresql:16.1.0-debian-11-r15 > postgresql.tar
@@ -109,6 +111,7 @@ init-images:
 	docker save provectuslabs/kafka-ui:v0.7.2 > kafka_ui.tar
 	docker save docker.io/adminer:4.8.1-standalone > adminer.tar
 	docker save quay.io/solo-io/gloo:1.19.3 > gloo.tar
+	docker save docker.io/grafana/grafana:12.0.2 > grafana.tar
 
 	microk8s images import < airflow.tar
 	microk8s images import < postgresql.tar
@@ -117,8 +120,9 @@ init-images:
 	microk8s images import < kafka_ui.tar
 	microk8s images import < adminer.tar
 	microk8s images import < gloo.tar
+	microk8s images import < grafana.tar
 
-	rm airflow.tar postgresql.tar mlflow.tar kafka.tar kafka_ui.tar adminer.tar gloo.tar
+	rm airflow.tar postgresql.tar mlflow.tar kafka.tar kafka_ui.tar adminer.tar gloo.tar grafana.tar
 
 init-airflow:
 	helm repo add apache-airflow https://airflow.apache.org
@@ -140,15 +144,15 @@ remove-airflow:
 
 init-dbs:
 	kubectl apply -f kubernetes_files/mlflow_db_creds.yml  -n ${K8S_NAMESPACE}
-	bash utils/create_postgres_db/create_postgres_db_psql.sh\
+	bash utils/postgres_db/create_postgres_db_psql.sh\
 	 ${K8S_NAMESPACE} ${mlflow_db_name} ${mlflow_db_secret_name}
 	kubectl apply -f kubernetes_files/monitoring_db_creds.yml\
 	  -n ${K8S_NAMESPACE}
-	bash utils/create_postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
+	bash utils/postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
 		${monitoring_db_name} ${monitoring_db_secret_name}
 	kubectl apply -f kubernetes_files/inference_webserver_db_creds.yml\
 	  -n ${K8S_NAMESPACE}
-	bash utils/create_postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
+	bash utils/postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
 		${inference_webserver_db_name} ${inference_webserver_db_secret_name}
 
 
@@ -229,6 +233,19 @@ init-gloo-gateway:
 
 remove-gloo-gateway:
 	helm uninstall ${GLOO_GATEWAY}
+
+
+init-grafana:
+	helm repo add grafana https://grafana.github.io/helm-charts
+	helm install ${GRAFANA_NAME} grafana/grafana\
+	 --namespace ${K8S_NAMESPACE}\
+	 --version 9.2.10
+	#-f kubernetes_files/grafana_values.yml\
+
+expose-grafana:
+	kubectl port-forward --address 0.0.0.0 svc/${GRAFANA_NAME}\
+	 8008:80 --namespace ${K8S_NAMESPACE} &
+
 
 init-apps: init-airflow init-dataset-http-server init-dbs init-adminer init-mlflow init-kafka init-gloo-gateway expose-airflow expose-adminer expose-mlflow expose-kafka-ui
 	kubectl apply -f kubernetes_files/system_cfgmap.yml -n ${K8S_NAMESPACE}

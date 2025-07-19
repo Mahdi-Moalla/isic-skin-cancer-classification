@@ -1,6 +1,6 @@
 import os
 from addict import Dict
-from datetime import datetime
+from datetime import datetime,  timedelta
 
 import fire
 from pprint import pprint
@@ -20,7 +20,7 @@ from evidently.report import Report
 from evidently.metrics import  (ColumnDriftMetric, 
                                 ColumnSummaryMetric)
 
-
+from sqlalchemy import  create_engine
 # https://github.com/evidentlyai/evidently/tree/e9c784058e0b7e31a3e03e8849e79dc2e4918092
 
 def init_config():
@@ -43,14 +43,13 @@ def init_config():
         os.getenv("postgres_db_password",
                   "monitoring_pass")
     
-    psycopg_conn_str=f"""
-    host={monitoring_config.postgres_db.server} 
-    port={monitoring_config.postgres_db.port} 
-    dbname={monitoring_config.postgres_db.db_name} 
-    user={monitoring_config.postgres_db.user_name} 
-    password={monitoring_config.postgres_db.password}"""
-
-    
+    psycopg_conn_str="postgresql+psycopg://{}:{}@{}:{}/{}".format(
+        monitoring_config.postgres_db.user_name,
+        monitoring_config.postgres_db.password,
+        monitoring_config.postgres_db.server,
+        monitoring_config.postgres_db.port,
+        monitoring_config.postgres_db.db_name
+    )
     
 
     monitoring_config.postgres_db.psycopg_conn_str=\
@@ -62,8 +61,8 @@ def init_config():
                   "http://legion-pro-7-16arx8h:8080")
     
 
-    monitoring_config.date=os.getenv("date",
-                                     "2025-01-01")
+    #monitoring_config.date=os.getenv("date",
+    #                                 "2025-01-01")
     
     #monitoring_config.hist_bins=\
     #    int(os.getenv("hist_bins",25))
@@ -90,7 +89,7 @@ def init_config():
 
 
 
-def  main():
+def main(date):
 
     np.random.seed(1)
 
@@ -127,8 +126,7 @@ def  main():
     #from IPython import embed as idbg; idbg(colors='Linux')
 
 
-    date=datetime.strptime(monitoring_config.date,
-                           "%Y-%m-%d")
+    #date=datetime.strptime(date,"%Y-%m-%d")
 
     print(date)
 
@@ -289,9 +287,58 @@ def  main():
     curr_means['date']=date.date()
     curr_stds['date']=date.date()
     
-    from IPython import embed as idbg; idbg(colors='Linux')
+    #from IPython import embed as idbg; idbg(colors='Linux')
+
+    engine = create_engine(monitoring_config.postgres_db.psycopg_conn_str)
+
+    try:
+        reference_histograms.to_sql(name="ref_hist",
+                                    con=engine,
+                                    if_exists='fail')
+        ref_means.to_sql(name="ref_means",
+                                    con=engine,
+                                    if_exists='fail')
+        ref_stds.to_sql(name="ref_stds",
+                                    con=engine,
+                                    if_exists='fail')
+    except ValueError:
+        pass
+
+    current_histograms.to_sql(name="curr_hist",
+                                    con=engine,
+                                    if_exists='append')
+    
+    curr_means.to_sql(name='curr_means',
+                      con=engine,
+                      if_exists='append')
+    curr_stds.to_sql(name='curr_stds',
+                      con=engine,
+                      if_exists='append')
+    drift.to_sql(name='drift',
+                      con=engine,
+                      if_exists='append')
+
+        
+
+    engine.dispose()
 
 
+
+def single_date(date):
+    main(datetime.strptime(date,"%Y-%m-%d"))
+
+
+def date_range(start_date,
+               end_date):
+    start_date=datetime.strptime(start_date,"%Y-%m-%d")
+    end_date=datetime.strptime(end_date,"%Y-%m-%d")
+    print(start_date)
+    print(end_date)
+
+    while start_date <= end_date:
+        print(start_date)
+        main(start_date)
+        start_date+=timedelta(days=1)
 
 if __name__=='__main__':
-    main()
+    fire.Fire()
