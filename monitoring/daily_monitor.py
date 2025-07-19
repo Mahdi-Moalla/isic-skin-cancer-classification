@@ -18,14 +18,7 @@ import mlflow
 from evidently import ColumnMapping
 from evidently.report import Report
 from evidently.metrics import  (ColumnDriftMetric, 
-                                DatasetDriftMetric, 
-                                DatasetMissingValuesMetric,
-                                ColumnQuantileMetric,
-                                DatasetSummaryMetric,
-                                ColumnDistributionMetric,
-                                DatasetCorrelationsMetric,
-                                ColumnSummaryMetric,
-                                ColumnCorrelationsMetric)
+                                ColumnSummaryMetric)
 
 
 # https://github.com/evidentlyai/evidently/tree/e9c784058e0b7e31a3e03e8849e79dc2e4918092
@@ -87,11 +80,11 @@ def init_config():
                   'isic-skin-cancer-classification')
     monitoring_config.monitoring_reference_data=\
         os.getenv('monitoring_reference_data',
-                  'mlflow-artifacts:/1/0acf699c52604669a8ea2b3682a75e78/artifacts/monitoring_reference_data/monitoring_reference_data.parquet')
+                  'mlflow-artifacts:/1/7157005cd94b4c29ade2805a78400aed/artifacts/monitoring_reference_data/monitoring_reference_data.parquet')
     
     monitoring_config.model_config_uri=\
         os.getenv('model_config_uri',
-                  'mlflow-artifacts:/1/e00b740317ca4dfd96de57b75e850b2c/artifacts/trainer/config.py')
+                  'mlflow-artifacts:/1/b07ab1407928453e8af1b9530083be95/artifacts/trainer/config.py')
 
     return monitoring_config
 
@@ -114,10 +107,11 @@ def  main():
         artifact_uri=monitoring_config.monitoring_reference_data,
         dst_path ='.')
     
-    ################################################
-    #mlflow.artifacts.download_artifacts(artifact_uri=
-    #    monitoring_config.model_config_uri,
-    #    dst_path ='.')
+    from config import tab_features
+    
+    mlflow.artifacts.download_artifacts(artifact_uri=
+        monitoring_config.model_config_uri,
+        dst_path ='.')
     
     reference_data_df=pd.read_parquet(monitoring_reference_data)
 
@@ -179,28 +173,36 @@ def  main():
         for j, color in enumerate(['r','g','b']):
             data.result[i].record[f"img_{color}_mean"]=stats.mean[j]
             data.result[i].record[f"img_{color}_std"]=stats.stddev[j]
-
-            hist=np.histogram(img_np[...,j], bins)[0]/band_count
+            data.result[i].record["band_count"]=band_count
+            hist=np.histogram(img_np[...,j], bins)[0]
             for k in  range(len(hist)):
                 data.result[i].record[f"img_{color}_hist_{bins[k]}_{bins[k+1]}"]=hist[k].item()
+                #data.result[i].record[f"img_{color}_hist_{bins[k]}_{bins[k+1]}_u"]=hist[k].item()
 
 
         
         data_pd.append(data.result[i].record.to_dict())
 
-    current_data_df=pd.DataFrame(data_pd)
-
-    from config import tab_features
-
     img_feats=[]
+    hist_feats=[]
 
     for j, color in enumerate(['r','g','b']):
         img_feats.append(f"img_{color}_mean")
         img_feats.append(f"img_{color}_std")
         for k in  range(len(hist)):
-            img_feats.append(f"img_{color}_hist_{bins[k]}_{bins[k+1]}")
+            feat_name=f"img_{color}_hist_{bins[k]}_{bins[k+1]}"
+            img_feats.append(feat_name)
+            hist_feats.append(feat_name)
 
-    img_feats = img_feats
+
+    current_data_df=pd.DataFrame(data_pd)
+
+
+    reference_histograms=new_reference_data_df[hist_feats].mean().to_frame().transpose()
+    current_histograms=current_data_df[hist_feats].sum()/(current_data_df['band_count'].sum())
+    current_histograms=current_histograms.to_frame().transpose()
+
+    #from IPython import embed as idbg; idbg(colors='Linux')
     
 
     column_mapping = ColumnMapping(
@@ -223,12 +225,11 @@ def  main():
 
     report_res = Dict(report.as_dict())
 
-    #pprint(resport_res)
+    curr_means=Dict( {} )
+    ref_means=Dict( {} )
+    curr_stds=Dict( {} )
+    ref_stds=Dict( {} )
 
-    #pprint([
-    #    (metric.result.column_name,
-    #     metric.result.drift_score) for metric in resport_res.metrics
-    #])
     for metric in report_res.metrics:
         output=f"""
         #####################################################
@@ -239,6 +240,14 @@ def  main():
         curr std: {metric.result.current_characteristics.std}
         """
         print(output)
+        curr_means[metric.result.column_name]=\
+            metric.result.current_characteristics.mean
+        ref_means[metric.result.column_name]=\
+            metric.result.reference_characteristics.mean
+        curr_stds[metric.result.column_name]=\
+            metric.result.current_characteristics.std
+        ref_stds[metric.result.column_name]=\
+            metric.result.reference_characteristics.std
 
 
     report = Report(metrics=
@@ -252,6 +261,8 @@ def  main():
 
     #pprint(report_res)
 
+    drift=Dict( {} )
+
     for metric in report_res.metrics:
         output=f"""
         #####################################################
@@ -259,11 +270,26 @@ def  main():
         drift score: {metric.result.drift_score}
         """
         print(output)
+        drift[metric.result.column_name]=\
+            metric.result.drift_score
 
 
 
+    ref_means=pd.DataFrame([ref_means.to_dict()])
+    ref_stds=pd.DataFrame([ref_stds.to_dict()])
+
+    reference_histograms
+    current_histograms['date']=date.date()
+
+    drift=pd.DataFrame([drift.to_dict()])
+    curr_means=pd.DataFrame([curr_means.to_dict()])
+    curr_stds=pd.DataFrame([curr_stds.to_dict()])
+    
+    drift['date']=date.date()
+    curr_means['date']=date.date()
+    curr_stds['date']=date.date()
+    
     from IPython import embed as idbg; idbg(colors='Linux')
-
 
 
 

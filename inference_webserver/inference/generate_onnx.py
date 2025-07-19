@@ -12,7 +12,7 @@ def generate_onnx(img_shape=(3,224,224),
     
     #model=isic_classifier(config=config)
     model=torch.load('model.pth', weights_only=False)
-    print(type(model))
+    #print(type(model))
 
     input_img=torch.zeros(1,*img_shape, dtype=torch.float )
 
