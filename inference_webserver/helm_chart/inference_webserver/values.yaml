@@ -31,12 +31,11 @@ inference:
   service_image: webserver:latest
   service:
     port: 8080
-  best_model:
-    model_checkpoint_uri: mlflow-artifacts:/1/67f54226a0c44d40a58059c621a12cb6/artifacts/best_finetune/best_finetune_0.ckpt
-    model_def_uri: mlflow-artifacts:/1/ede2f346a35a41efac36c713abec84f7/artifacts/trainer/isic_model.py
-    model_config_uri: mlflow-artifacts:/1/ede2f346a35a41efac36c713abec84f7/artifacts/trainer/config.py
-    preprocessor_def_uri: mlflow-artifacts:/1/ede2f346a35a41efac36c713abec84f7/artifacts/data_preprocessor/preprocess_data.py
-
+  model:
+    registry:
+      model_name: isic-skin-cancer-classification-model
+      version: 1
+  py_artifacts_run_id: b07ab1407928453e8af1b9530083be95
 
 
 backend:

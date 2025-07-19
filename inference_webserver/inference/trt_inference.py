@@ -45,9 +45,8 @@ import torch
 import torch.nn.functional as F
 
 from preprocess_data import preprocess_transform
-from config import (config,
-                    tab_features,
-                    val_transforms)
+from config import config,tab_features
+from  transforms import val_transforms
 
 import  pandas as pd
 

@@ -7,9 +7,13 @@ from config import config
 def generate_onnx(img_shape=(3,224,224),
                   output_file='./model.onnx'):
 
-    model=isic_classifier.load_from_checkpoint('model.ckpt',
-                                               config=config)
+    #model=isic_classifier.load_from_checkpoint('model.ckpt',
+    #                                           config=config)
     
+    #model=isic_classifier(config=config)
+    model=torch.load('model.pth', weights_only=False)
+    print(type(model))
+
     input_img=torch.zeros(1,*img_shape, dtype=torch.float )
 
     input_tab_feats=torch.zeros(1,len(config.tab_features), 

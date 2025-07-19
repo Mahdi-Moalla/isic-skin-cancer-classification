@@ -41,15 +41,14 @@ spec:
         - name: mlflow_experiment_name
           value: {{ .Values.mlflow.experiment_name }}
         
-        - name: model_checkpoint_uri
-          value: {{ .Values.inference.best_model.model_checkpoint_uri }}
-        - name: model_def_uri
-          value: {{ .Values.inference.best_model.model_def_uri}}
-        - name: model_config_uri
-          value: {{ .Values.inference.best_model.model_config_uri}}
-        - name: preprocessor_def_uri
-          value: {{ .Values.inference.best_model.preprocessor_def_uri}}
-
+        - name: registry_model_name
+          value: {{ .Values.inference.model.registry.model_name }}
+        - name: registry_model_version
+          value: "{{ .Values.inference.model.registry.version }}"
+        - name: py_artifacts_run_id
+          value: "{{ .Values.inference.py_artifacts_run_id }}"
+        
+        
         - name: postgres_server
           value: {{ .Values.postgres_db.host }}
         - name: postgres_port

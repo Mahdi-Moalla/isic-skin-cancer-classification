@@ -2,28 +2,42 @@ import  os
 
 import mlflow
 
+
+
 if __name__=='__main__':
+
+    py_artifacts=['trainer/isic_model.py',
+                  'trainer/config.py',
+                  'trainer/transforms.py',
+                  'data_preprocessor/preprocess_data.py']
 
     mlflow_server_url=os.getenv('mlflow_server_url')
     mlflow_experiment_name=os.getenv('mlflow_experiment_name')
     
-    model_checkpoint_uri=os.getenv('model_checkpoint_uri')
-    model_def_uri=os.getenv('model_def_uri')
-    model_config_uri=os.getenv('model_config_uri')
-    preprocessor_def_uri=os.getenv('preprocessor_def_uri')
+    registry_model_name=os.getenv('registry_model_name')
+    registry_model_version=os.getenv('registry_model_version')
+    py_artifacts_run_id=os.getenv('py_artifacts_run_id')
     
+
+
     mlflow.set_tracking_uri(uri=mlflow_server_url)
-    mlflow.set_experiment(mlflow_experiment_name)
+    experiment=mlflow.set_experiment(mlflow_experiment_name)
+    experiment_id=experiment.experiment_id
 
-    model_checkpoint_file=mlflow.artifacts.download_artifacts(artifact_uri=model_checkpoint_uri,
+
+    model_uri=f'models:/{registry_model_name}/{registry_model_version}/data/model.pth'
+
+    model_checkpoint_file=mlflow.artifacts.download_artifacts(artifact_uri=model_uri,
                                         dst_path ='.')
     
-    os.rename(model_checkpoint_file, 'model.ckpt')
+    os.rename(model_checkpoint_file, 'model.pth')
 
-    mlflow.artifacts.download_artifacts(artifact_uri=model_def_uri,
-                                        dst_path ='.')
+
+    for  artifact_path in py_artifacts:
+        artifact_uri=f"mlflow-artifacts:/{experiment_id}/{py_artifacts_run_id}/artifacts/{artifact_path}"
+
+        mlflow.artifacts.download_artifacts(
+            artifact_uri=artifact_uri,
+            dst_path ='.')
     
-    mlflow.artifacts.download_artifacts(artifact_uri=model_config_uri,
-                                        dst_path ='.')
-    mlflow.artifacts.download_artifacts(artifact_uri=preprocessor_def_uri,
-                                        dst_path ='.')
+    

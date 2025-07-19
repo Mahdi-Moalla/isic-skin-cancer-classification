@@ -1,7 +1,6 @@
 inference:
-  best_model:
-    model_checkpoint_uri: mlflow-artifacts:/1/0acf699c52604669a8ea2b3682a75e78/artifacts/best_finetune/best_finetune_0.ckpt
-    model_def_uri: mlflow-artifacts:/1/e00b740317ca4dfd96de57b75e850b2c/artifacts/trainer/isic_model.py
-    model_config_uri: mlflow-artifacts:/1/e00b740317ca4dfd96de57b75e850b2c/artifacts/trainer/config.py
-    preprocessor_def_uri: mlflow-artifacts:/1/e00b740317ca4dfd96de57b75e850b2c/artifacts/data_preprocessor/preprocess_data.py
-
+  model:
+    registry:
+      model_name: isic-skin-cancer-classification-model
+      version: 1
+  py_artifacts_run_id: b07ab1407928453e8af1b9530083be95

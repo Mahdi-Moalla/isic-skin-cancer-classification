@@ -70,7 +70,7 @@ delete-cluster:
 	microk8s stop
 
 
-microk8s-init-images:
+init-images:
 
 	#bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
 	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image} 

@@ -83,7 +83,8 @@ def log_train_data(metadata_file,
 
     
     final_data_df = pd.DataFrame(final_data)
-    final_data_df.to_parquet('monitoring_reference_data.parquet')
+    final_data_df.to_parquet('monitoring_reference_data.parquet', 
+                             engine='pyarrow')
 
     
     mlflow.log_artifact('monitoring_reference_data.parquet',
