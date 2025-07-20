@@ -1,0 +1,16 @@
+# config file version
+apiVersion: 1
+
+# list of datasources to insert/update
+# available in the database
+datasources:
+  - name: PostgreSQL
+    type: postgres
+    url:  airflow-service-postgresql:5432
+    user: grafanareader
+    secureJsonData:
+      password: 'password'
+    jsonData:
+      database: monitoring_db
+      sslmode: 'disable'
+      postgresVersion: 1601

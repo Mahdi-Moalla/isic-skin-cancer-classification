@@ -236,11 +236,18 @@ remove-gloo-gateway:
 
 
 init-grafana:
+	bash utils/postgres_db/create_grafana_user.sh ${K8S_NAMESPACE} 
 	helm repo add grafana https://grafana.github.io/helm-charts
 	helm install ${GRAFANA_NAME} grafana/grafana\
 	 --namespace ${K8S_NAMESPACE}\
+	 -f kubernetes_files/grafana_values.yml\
 	 --version 9.2.10
-	#-f kubernetes_files/grafana_values.yml\
+
+remove-grafana:
+	helm uninstall ${GRAFANA_NAME}
+	ps -C "kubectl port-forward --address 0.0.0.0\
+	 svc/${GRAFANA_NAME}" -o pid= | xargs kill -9
+	
 
 expose-grafana:
 	kubectl port-forward --address 0.0.0.0 svc/${GRAFANA_NAME}\
