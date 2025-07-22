@@ -42,22 +42,29 @@ from tqdm import tqdm
 def log_train_data(metadata_file,
                    image_file,
                    isic_ids):
-    
+    print('####### in  log_train_data ##########')    
     hist_bins=int(os.getenv("monitoring_img_hist_bins",
                         50))
     
     bins=np.arange(0,256,hist_bins)
     bins[-1]=255
-    
+
+    bins_labels=[ str(x/2) for x in  ( bins[:-1] + bins[1:] ).tolist()]
     
     metadata=pd.read_csv(metadata_file,
                          low_memory=False)
     isic_id_lut={ idx:k  for k,idx in enumerate(metadata['isic_id'])  }
     
-    final_data=[]
+    data=[]
 
+    hists=Dict( {} )
+    for color in ['r','g','b']:
+        for bin_label in bins_labels:
+            hists[color][ bin_label ]['sum']=0.0
+            hists[color][ bin_label ]['count']=0
     with h5py.File(image_file, 'r') as f_img:
         for isic_id in tqdm(isic_ids):
+            #print(isic_id)
             record = Dict( metadata.iloc[isic_id_lut[isic_id]].to_dict() )
 
             assert isic_id == record.isic_id
@@ -76,14 +83,17 @@ def log_train_data(metadata_file,
                 record[f"img_{color}_std"]=stats.stddev[j]
 
                 hist=np.histogram(img_np[...,j], bins)[0]/band_count
-                for k in  range(len(hist)):
-                    record[f"img_{color}_hist_{bins[k]}_{bins[k+1]}"]=hist[k].item()
-        
-            final_data.append( record.to_dict() )
+                for k,v in  enumerate(hist.tolist()):
+                    #record[f"img_{color}_hist_{bins[k]}_{bins[k+1]}"]=hist[k].item()
+                    hists[color][ bins_labels[k] ].sum+=v
+                    hists[color][ bins_labels[k] ].count+=1
+
+
+            data.append( record.to_dict() )
 
     
-    final_data_df = pd.DataFrame(final_data)
-    final_data_df.to_parquet('monitoring_reference_data.parquet', 
+    data_df = pd.DataFrame(data)
+    data_df.to_parquet('monitoring_reference_data.parquet', 
                              engine='pyarrow')
 
     
@@ -92,6 +102,28 @@ def log_train_data(metadata_file,
     
     os.remove('monitoring_reference_data.parquet')
     
+    cumul_hist=[]
+    for color in ['r','g','b']:
+        for bin_label in bins_labels:
+            cumul_hist.append({
+                "color":color,
+                "bin_label":bin_label,
+                "value":hists[color][ bin_label ].sum/hists[color][ bin_label ].count
+            })
+
+    cumul_hist_df = pd.DataFrame(cumul_hist)
+    cumul_hist_df.to_parquet('monitoring_reference_cumul_hist.parquet', 
+                             engine='pyarrow')
+
+    
+    mlflow.log_artifact('monitoring_reference_cumul_hist.parquet',
+                        'monitoring_reference_cumul_hist')
+    
+    os.remove('monitoring_reference_cumul_hist.parquet')
+    
+            
+
+
 
 def prepare_data(config, 
                  X_train, 
@@ -313,13 +345,13 @@ def main(data_dir='/workspace/data',
                 #reduced_X_val=pd.concat([val_pos['isic_id'],
                 #                         val_neg.sample(frac=0.2)['isic_id']])
                 #reduced_X_val.shape
-            
+                print('######### generating data #############')
                 train_dataloader, val_dataloader = prepare_data(config, 
                                                                 X_train, 
                                                                 reduced_X_val,
                                                                 train_transforms,
                                                                 val_transforms)
-            
+                print('######### training #############')
                 fold_train(config, i, train_dataloader, val_dataloader, logger )
 
 

@@ -11,5 +11,5 @@ while true; do
           -s -d '+' | bc) -eq $((nbline-1)) ]; then
         break
     fi
-    sleep 1
+    sleep 5
 done

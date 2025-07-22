@@ -5,4 +5,4 @@ metadata:
   namespace: isic-skin-cancer-classification
 data:
   code_repo: "https://github.com/Mahdi-Moalla/isic-skin-cancer-classification"
-  monitoring_img_hist_bins: "50"
+  monitoring_img_hist_bins: "5"
