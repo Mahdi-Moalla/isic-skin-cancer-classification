@@ -1,8 +1,9 @@
 evidently==0.6.7
-psycopg
-psycopg_binary
-sqlalchemy
+psycopg==3.2.9
+psycopg_binary==3.2.9
+sqlalchemy==2.0.41
 pillow
+scikit-learn
 pandas
 pyarrow
 tqdm

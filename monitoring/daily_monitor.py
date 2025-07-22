@@ -2,6 +2,7 @@ import os
 from addict import Dict
 from datetime import datetime,  timedelta
 
+from tqdm  import tqdm
 import fire
 from pprint import pprint
 
@@ -20,8 +21,12 @@ from evidently.report import Report
 from evidently.metrics import  (ColumnDriftMetric, 
                                 ColumnSummaryMetric)
 
-from sqlalchemy import  create_engine
+from sqlalchemy import  create_engine,  text
 # https://github.com/evidentlyai/evidently/tree/e9c784058e0b7e31a3e03e8849e79dc2e4918092
+
+import sklearn
+
+from sklearn.metrics import roc_curve, auc, roc_auc_score
 
 def init_config():
 
@@ -69,7 +74,7 @@ def init_config():
     
     monitoring_config.monitoring_img_hist_bins=\
         int(os.getenv("monitoring_img_hist_bins",
-                        50))
+                        5))
     
     monitoring_config.mlflow_server_url=\
         os.getenv('mlflow_server_url',
@@ -77,13 +82,16 @@ def init_config():
     monitoring_config.mlflow_experiment_name=\
         os.getenv('mlflow_experiment_name',
                   'isic-skin-cancer-classification')
-    monitoring_config.monitoring_reference_data=\
-        os.getenv('monitoring_reference_data',
-                  'mlflow-artifacts:/1/7157005cd94b4c29ade2805a78400aed/artifacts/monitoring_reference_data/monitoring_reference_data.parquet')
+    #monitoring_config.model_config_uri=\
+    #    os.getenv('model_config_uri',
+    #              'mlflow-artifacts:/1/b07ab1407928453e8af1b9530083be95/artifacts/trainer/config.py')
+
+    #monitoring_config.monitoring_reference_data=\
+    #    os.getenv('monitoring_reference_data',
+    #              'mlflow-artifacts:/1/7157005cd94b4c29ade2805a78400aed/artifacts/monitoring_reference_data/monitoring_reference_data.parquet')
     
-    monitoring_config.model_config_uri=\
-        os.getenv('model_config_uri',
-                  'mlflow-artifacts:/1/b07ab1407928453e8af1b9530083be95/artifacts/trainer/config.py')
+    monitoring_config.fold_run_id=os.getenv('fold_run_id',
+            'f5303275ff1545aeb4d0ec11fe4d7cff')
 
     return monitoring_config
 
@@ -94,25 +102,39 @@ def main(date):
     np.random.seed(1)
 
     monitoring_config=init_config()
-    pprint(monitoring_config.to_dict())
+    #pprint(monitoring_config.to_dict())
 
     
     mlflow.set_tracking_uri(uri=
                 monitoring_config.mlflow_server_url)
-    mlflow.set_experiment(
+    experiment=mlflow.set_experiment(
         monitoring_config.mlflow_experiment_name)
     
-    monitoring_reference_data=mlflow.artifacts.download_artifacts(\
-        artifact_uri=monitoring_config.monitoring_reference_data,
+    experiment_id=experiment.experiment_id
+
+    fold_run = mlflow.get_run(run_id=monitoring_config.fold_run_id) 
+
+    run_id=fold_run.data.tags['mlflow.parentRunId']
+
+    mlflow.artifacts.download_artifacts(artifact_uri=
+        f'mlflow-artifacts:/{experiment_id}/{run_id}/artifacts/trainer/config.py',
         dst_path ='.')
     
     from config import tab_features
     
-    mlflow.artifacts.download_artifacts(artifact_uri=
-        monitoring_config.model_config_uri,
+    monitoring_reference_data=mlflow.artifacts.download_artifacts(
+        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.fold_run_id}/artifacts/monitoring_reference_data/monitoring_reference_data.parquet',
         dst_path ='.')
     
+    monitoring_reference_cumul_hist=mlflow.artifacts.download_artifacts(
+        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.fold_run_id}/artifacts/monitoring_reference_cumul_hist/monitoring_reference_cumul_hist.parquet',
+        dst_path ='.')
+    
+
+    
     reference_data_df=pd.read_parquet(monitoring_reference_data)
+    reference_cumul_hist_df=pd.read_parquet(monitoring_reference_cumul_hist)
+    
 
     pos_ref_data=reference_data_df[ reference_data_df['target']==1 ]
     neg_ref_data=reference_data_df[ reference_data_df['target']==0 ]
@@ -128,7 +150,7 @@ def main(date):
 
     #date=datetime.strptime(date,"%Y-%m-%d")
 
-    print(date)
+    #print(date)
 
     response=requests.get(
         f"{monitoring_config.inference_webserver_host}/v1/data-persistance/dayquery",
@@ -137,26 +159,43 @@ def main(date):
             "score":"true"
         })
     
-    pprint(response.json())
+    #pprint(response.json())
 
     data=Dict(response.json())
 
     bins=np.arange(0,256,
         monitoring_config.monitoring_img_hist_bins)
     bins[-1]=255
+    bins_labels=[ str(x/2) for x in  ( bins[:-1] + bins[1:] ).tolist()]
+
     
     data_pd=[]
 
+    curr_hists_data=[]
+
+    scores=[]
+    targets=[]
+
+    alarms=[]
+
     for i in range(len(data.result)):
-        data.result[i].record.score=\
-            data.result[i].score
-        data.result[i].record.created_at=\
-            data.result[i].created_at
+        record=data.result[i].record
+
+        record.score=data.result[i].score
+        record.created_at=data.result[i].created_at
+        
+        scores.append( record.score )
+        targets.append( record.target )
+
+        if targets[-1]==1 and scores[-1]<0.5:
+            alarms.append({"date":date,
+                           "isic_id":record.isic_id,
+                           "score":record.score})
         
         image_response=requests.get(
             f"{monitoring_config.inference_webserver_host}/v1/data-persistance/getimage",
             params={
-                "isic_id":data.result[i].isic_id
+                "isic_id": data.result[i].isic_id
             }
         )
 
@@ -169,37 +208,46 @@ def main(date):
         stats = ImageStat.Stat(img)
 
         for j, color in enumerate(['r','g','b']):
-            data.result[i].record[f"img_{color}_mean"]=stats.mean[j]
-            data.result[i].record[f"img_{color}_std"]=stats.stddev[j]
-            data.result[i].record["band_count"]=band_count
-            hist=np.histogram(img_np[...,j], bins)[0]
+            record[f"img_{color}_mean"]=stats.mean[j]
+            record[f"img_{color}_std"]=stats.stddev[j]
+            record["band_count"]=band_count
+            
+            hist=np.histogram(img_np[...,j], bins)[0]/band_count
             for k in  range(len(hist)):
-                data.result[i].record[f"img_{color}_hist_{bins[k]}_{bins[k+1]}"]=hist[k].item()
-                #data.result[i].record[f"img_{color}_hist_{bins[k]}_{bins[k+1]}_u"]=hist[k].item()
+                curr_hists_data.append({
+                    "date": date,
+                    "isic_id": data.result[i].record.isic_id,
+                    "color": color,
+                    "bin_label": bins_labels[k],
+                    "value": hist[k]
+                })
+            
+        data_pd.append(record.to_dict())
 
-
-        
-        data_pd.append(data.result[i].record.to_dict())
-
+    
     img_feats=[]
-    hist_feats=[]
 
     for j, color in enumerate(['r','g','b']):
         img_feats.append(f"img_{color}_mean")
         img_feats.append(f"img_{color}_std")
-        for k in  range(len(hist)):
-            feat_name=f"img_{color}_hist_{bins[k]}_{bins[k+1]}"
-            img_feats.append(feat_name)
-            hist_feats.append(feat_name)
-
+    
 
     current_data_df=pd.DataFrame(data_pd)
+    curr_hists_data_df=pd.DataFrame(curr_hists_data)
+
+    fpr,  tpr, _ = roc_curve(targets, scores)
+
+    roc_df=pd.DataFrame(  [{
+        "date": date,
+        "fpr":  fpr.tolist(),
+        "tpr": tpr.tolist(),
+        "auc": auc(fpr, tpr)
+    }] )
+
+    alarms_df = pd.DataFrame(alarms)
 
 
-    reference_histograms=new_reference_data_df[hist_feats].mean().to_frame().transpose()
-    current_histograms=current_data_df[hist_feats].sum()/(current_data_df['band_count'].sum())
-    current_histograms=current_histograms.to_frame().transpose()
-
+    
     #from IPython import embed as idbg; idbg(colors='Linux')
     
 
@@ -237,7 +285,7 @@ def main(date):
         curr mean: {metric.result.current_characteristics.mean}
         curr std: {metric.result.current_characteristics.std}
         """
-        print(output)
+        #print(output)
         curr_means[metric.result.column_name]=\
             metric.result.current_characteristics.mean
         ref_means[metric.result.column_name]=\
@@ -267,7 +315,7 @@ def main(date):
         column  name: {metric.result.column_name}
         drift score: {metric.result.drift_score}
         """
-        print(output)
+        #print(output)
         drift[metric.result.column_name]=\
             metric.result.drift_score
 
@@ -276,8 +324,8 @@ def main(date):
     ref_means=pd.DataFrame([ref_means.to_dict()])
     ref_stds=pd.DataFrame([ref_stds.to_dict()])
 
-    reference_histograms
-    current_histograms['date']=date.date()
+    #reference_histograms
+    #current_histograms['date']=date.date()
 
     drift=pd.DataFrame([drift.to_dict()])
     curr_means=pd.DataFrame([curr_means.to_dict()])
@@ -288,11 +336,12 @@ def main(date):
     curr_stds['date']=date.date()
     
     #from IPython import embed as idbg; idbg(colors='Linux')
-
+    #exit(0)
+    
     engine = create_engine(monitoring_config.postgres_db.psycopg_conn_str)
 
     try:
-        reference_histograms.to_sql(name="ref_hist",
+        reference_cumul_hist_df.to_sql(name="reference_hist",
                                     con=engine,
                                     if_exists='fail')
         ref_means.to_sql(name="ref_means",
@@ -304,7 +353,7 @@ def main(date):
     except ValueError:
         pass
 
-    current_histograms.to_sql(name="curr_hist",
+    curr_hists_data_df.to_sql(name="curr_hists",
                                     con=engine,
                                     if_exists='append')
     
@@ -317,9 +366,21 @@ def main(date):
     drift.to_sql(name='drift',
                       con=engine,
                       if_exists='append')
-
+    roc_df.to_sql(name='roc',
+                      con=engine,
+                      if_exists='append')
+    if len(alarms_df)>0:
+        alarms_df.to_sql(name='alarms',
+                        con=engine,
+                        if_exists='append')
+    
+    with engine.connect() as connection:
+        grafana_allow_sql_select="""
+        GRANT USAGE ON SCHEMA public TO grafanareader;
+        GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafanareader;
+        """
+        connection.execute(text(grafana_allow_sql_select))
         
-
     engine.dispose()
 
 
@@ -335,10 +396,17 @@ def date_range(start_date,
     print(start_date)
     print(end_date)
 
+    dates=[]
     while start_date <= end_date:
         print(start_date)
-        main(start_date)
+        #main(start_date)
+        dates.append(start_date)
         start_date+=timedelta(days=1)
+
+    for date in tqdm(dates):
+        print('########################################################')
+        print(date)
+        main(date)
 
 if __name__=='__main__':
     fire.Fire()

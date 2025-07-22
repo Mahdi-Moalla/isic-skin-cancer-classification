@@ -16,6 +16,7 @@ trainer_docker_image:=nvcr_pytorch_tensorrt_mod:latest
 preprocessor_docker_image:=isic_preprocessor:latest
 ubuntu_toolset_docker_image:=ubuntu_toolset:latest
 webserver_docker_image:=webserver:latest
+monitoring_docker_image:=monitoring_img:latest
 
 mlflow_db_name:=mlflow_db
 mlflow_db_secret_name:=mlflow-db-secret
@@ -73,6 +74,10 @@ delete-cluster:
 
 
 init-images:
+	#bash monitoring/build_docker_image.sh ${monitoring_docker_image}
+	docker save -o monitoring_docker_image.tar  ${monitoring_docker_image} 
+	microk8s images import < monitoring_docker_image.tar
+	rm monitoring_docker_image.tar
 
 	#bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
 	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image} 
@@ -155,6 +160,7 @@ init-dbs:
 	  -n ${K8S_NAMESPACE}
 	bash utils/postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
 		${inference_webserver_db_name} ${inference_webserver_db_secret_name}
+	bash utils/postgres_db/create_grafana_user.sh ${K8S_NAMESPACE} 
 
 
 
@@ -237,7 +243,6 @@ remove-gloo-gateway:
 
 
 init-grafana:
-	bash utils/postgres_db/create_grafana_user.sh ${K8S_NAMESPACE} 
 	helm repo add grafana https://grafana.github.io/helm-charts
 	helm install ${GRAFANA_NAME} grafana/grafana\
 	 --namespace ${K8S_NAMESPACE}\
@@ -258,3 +263,7 @@ expose-grafana:
 init-apps: init-airflow init-dataset-http-server init-dbs init-adminer init-mlflow init-kafka init-gloo-gateway expose-airflow expose-adminer expose-mlflow expose-kafka-ui
 	kubectl apply -f kubernetes_files/system_cfgmap.yml -n ${K8S_NAMESPACE}
 	echo "apps installed"
+
+
+expose-all: expose-airflow expose-mlflow expose-adminer expose-kafka-ui expose-postgres
+	echo "all services exposed"

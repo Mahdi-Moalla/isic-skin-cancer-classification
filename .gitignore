@@ -220,5 +220,6 @@ inference_webserver_no_db_create.sql
 *.parquet
 
 monitoring/*.parquet
+monitoring/config.py
 
 monitoring_db.sql

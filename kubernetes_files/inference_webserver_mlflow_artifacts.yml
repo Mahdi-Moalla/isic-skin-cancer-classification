@@ -3,4 +3,4 @@ inference:
     registry:
       model_name: isic-skin-cancer-classification-model
       version: 1
-  py_artifacts_run_id: b07ab1407928453e8af1b9530083be95
+  py_artifacts_run_id: 1548684d2b2348798358e35252feabd9

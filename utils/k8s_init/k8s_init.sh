@@ -4,6 +4,7 @@ microk8s status --wait-ready
 while true; do
     nbline=$(kubectl get pod -A  | wc -l)
     if [ $nbline -lt 3 ]; then
+        sleep 5
         continue
     fi
     if [ $(kubectl get pod -A | awk\
