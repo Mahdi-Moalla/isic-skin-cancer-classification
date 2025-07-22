@@ -45,6 +45,7 @@ endif
 
 init-cluster:
 	microk8s start
+	bash utils/k8s_init/k8s_init.sh
 	microk8s enable hostpath-storage
 	microk8s  enable dns
 	microk8s enable nvidia

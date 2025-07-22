@@ -27,7 +27,8 @@ extraInitContainers:
           git clone $code_repo code_repo &&
           cd  code_repo &&
           cp monitoring/grafana/datasource.yml  $data_sources &&
-          cp monitoring/grafana/dashboard_provider.yml $dashboards
+          cp monitoring/grafana/dashboard_provider.yml $dashboards &&
+          cp monitoring/grafana/dashboard_def.json $dashboard_def
     env:
       - name: code_repo
         valueFrom:
