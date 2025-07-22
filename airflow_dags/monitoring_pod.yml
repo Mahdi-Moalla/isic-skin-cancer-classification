@@ -1,0 +1,95 @@
+# https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-initialization/#create-a-pod-that-has-an-init-container
+apiVersion: v1
+kind: Pod
+metadata:
+  name: monitoring-pod
+  namespace: isic-skin-cancer-classification
+spec:
+  restartPolicy: OnFailure
+  initContainers:
+    - name: repo-clone
+      image: ubuntu_toolset:latest
+      imagePullPolicy: Never
+      command: ["bash"]
+      args:
+        - -c
+        - >-
+            cd /home &&
+            git clone $code_repo repo_code
+      env:
+      
+        - name: code_repo
+          valueFrom:
+              configMapKeyRef:
+                name: system-cfgmap
+                key: code_repo
+      
+      volumeMounts:
+        - mountPath: "/home"
+          name: homedir
+  
+  containers:
+    - name: base
+      image: monitoring_img:latest
+      imagePullPolicy: Never
+      command: ["bash"]
+      args: ["repo_code/monitoring/run_monitoring.sh"] 
+      
+      env:
+    
+        - name: monitoring_img_hist_bins
+          valueFrom:
+              configMapKeyRef:
+                name: system-cfgmap
+                key: monitoring_img_hist_bins    
+        - name: mlflow_server_url
+          valueFrom:
+              configMapKeyRef:
+                name: monitoring-cfgmap
+                key: mlflow_server_url      
+        - name: mlflow_experiment_name
+          valueFrom:
+              configMapKeyRef:
+                name: system-cfgmap
+                key: mlflow_experiment_name
+        - name: inference_webserver_host
+          valueFrom:
+              configMapKeyRef:
+                name: monitoring-cfgmap
+                key: inference_webserver_host
+        - name: postgres_server
+          valueFrom:
+              configMapKeyRef:
+                name: monitoring-cfgmap
+                key: postgres_server
+        - name: postgres_port
+          valueFrom:
+              configMapKeyRef:
+                name: monitoring-cfgmap
+                key: postgres_port
+        - name: postgres_db_name
+          valueFrom:
+              configMapKeyRef:
+                name: monitoring-cfgmap
+                key: postgres_db_name
+        
+        - name: postgres_db_user
+          valueFrom:
+            secretKeyRef:
+              name: monitoring-db-secret
+              key: username
+        - name: postgres_db_password
+          valueFrom:
+            secretKeyRef:
+              name: monitoring-db-secret
+              key: password
+              
+        
+
+      volumeMounts:
+        - mountPath: "/home"
+          name: homedir
+        
+  volumes: ###
+    - name: homedir
+      emptyDir: {}

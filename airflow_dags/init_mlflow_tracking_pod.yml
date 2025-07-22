@@ -19,9 +19,9 @@ spec:
         - name: mlflow_experiment_name
           valueFrom:
               configMapKeyRef:
-                name: training-pipeline-cfgmap
+                name: system-cfgmap
                 key: mlflow_experiment_name
-      
+        
       command: ["python"]
       args:
         - -c

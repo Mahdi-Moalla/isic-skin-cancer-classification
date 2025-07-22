@@ -243,6 +243,7 @@ remove-gloo-gateway:
 
 
 init-grafana:
+	bash utils/postgres_db/create_grafana_user.sh ${K8S_NAMESPACE}
 	helm repo add grafana https://grafana.github.io/helm-charts
 	helm install ${GRAFANA_NAME} grafana/grafana\
 	 --namespace ${K8S_NAMESPACE}\

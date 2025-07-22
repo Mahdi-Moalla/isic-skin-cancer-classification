@@ -46,8 +46,7 @@ spec:
             git clone $code_repo repo_code &&
             mkdir -p /workspace/data/work &&
             cd repo_code/training_pipeline/trainer/ &&
-            python train.py /workspace/data/$(preprocessed_dataset_folder) /workspace/data/work &&
-            exit 1    #  blocking  dag end
+            python train.py /workspace/data/$(preprocessed_dataset_folder) /workspace/data/work
 
       volumeMounts:
         - mountPath: "/workspace/data"

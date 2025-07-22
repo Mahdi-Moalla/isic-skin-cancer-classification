@@ -50,8 +50,8 @@ data:
   dataset_folder: "dataset"
   preprocessed_dataset_folder: "preprocessed_dataset"
   mlflow_server_url: "http://mlflow-service:5000"
-  mlflow_experiment_name: "isic-skin-cancer-classification"
 """
+#  mlflow_experiment_name: "isic-skin-cancer-classification"
 
 with DAG(
     dag_id="training_pipeline_cleaner"
@@ -147,7 +147,7 @@ with DAG(
             Path(osp.join(
                 dag_file_path,'trainer_pod.yml')).read_text()),
         task_id="trainer",
-        on_finish_action="keep_pod",
+        #on_finish_action="keep_pod",
         do_xcom_push=True,
         env_vars=[k8s.V1EnvVar(name="run_context",
                                 value="{{ task_instance.xcom_pull('data-preprocessor') }}")],

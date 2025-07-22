@@ -38,8 +38,12 @@ spec:
 
         - name: mlflow_server_url
           value: {{ .Values.mlflow.server }}
+        
         - name: mlflow_experiment_name
-          value: {{ .Values.mlflow.experiment_name }}
+          valueFrom:
+            configMapKeyRef:
+              name: system-cfgmap
+              key: mlflow_experiment_name
         
         - name: registry_model_name
           value: {{ .Values.inference.model.registry.model_name }}

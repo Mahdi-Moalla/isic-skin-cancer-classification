@@ -1,7 +1,7 @@
 import os
 from addict import Dict
 from datetime import datetime,  timedelta
-
+import json
 from tqdm  import tqdm
 import fire
 from pprint import pprint
@@ -97,13 +97,14 @@ def init_config():
 
 
 
-def main(date):
+def main(date,
+         monitoring_config):
 
     np.random.seed(1)
 
-    monitoring_config=init_config()
-    #pprint(monitoring_config.to_dict())
+    pprint(monitoring_config.to_dict())
 
+    #exit(0)
     
     mlflow.set_tracking_uri(uri=
                 monitoring_config.mlflow_server_url)
@@ -237,12 +238,13 @@ def main(date):
 
     fpr,  tpr, _ = roc_curve(targets, scores)
 
-    roc_df=pd.DataFrame(  [{
-        "date": date,
-        "fpr":  fpr.tolist(),
-        "tpr": tpr.tolist(),
-        "auc": auc(fpr, tpr)
-    }] )
+    roc=[]
+
+    for fx,ty in zip(fpr.tolist(),tpr.tolist() ):
+        roc.append( {"date":date, "fx":fx, "ty":ty} )
+
+    roc_df=pd.DataFrame( roc )
+    auc_df=pd.DataFrame( [ {"date":date , "auc":auc(fpr, tpr) } ] )
 
     alarms_df = pd.DataFrame(alarms)
 
@@ -369,6 +371,9 @@ def main(date):
     roc_df.to_sql(name='roc',
                       con=engine,
                       if_exists='append')
+    auc_df.to_sql(name='auc',
+                          con=engine,
+                          if_exists='append')
     if len(alarms_df)>0:
         alarms_df.to_sql(name='alarms',
                         con=engine,
@@ -385,28 +390,38 @@ def main(date):
 
 
 
-def single_date(date):
-    main(datetime.strptime(date,"%Y-%m-%d"))
+
+def runner():
+    monitoring_config=init_config()
+
+    dag_params=Dict(json.loads(os.getenv("dag_params").replace("\'", "\"")))
+
+    monitoring_config.fold_run_id=dag_params.fold_run_id
+
+    start_date=datetime.strptime(dag_params.start_date,"%Y-%m-%d")
+
+    #print(monitoring_config)
+    #print(dag_params)
+    #print(start_date)
 
 
-def date_range(start_date,
-               end_date):
-    start_date=datetime.strptime(start_date,"%Y-%m-%d")
-    end_date=datetime.strptime(end_date,"%Y-%m-%d")
-    print(start_date)
-    print(end_date)
+    if dag_params.run_type=='single':
+        main(start_date,
+             monitoring_config)
+    elif dag_params.run_type=='range':
+        end_date=datetime.strptime(dag_params.end_date,"%Y-%m-%d")
 
-    dates=[]
-    while start_date <= end_date:
-        print(start_date)
-        #main(start_date)
-        dates.append(start_date)
-        start_date+=timedelta(days=1)
+        dates=[]
+        while start_date <= end_date:
+            dates.append(start_date)
+            start_date+=timedelta(days=1)
 
-    for date in tqdm(dates):
-        print('########################################################')
-        print(date)
-        main(date)
+        for date in tqdm(dates):
+            print('########################################################')
+            print(date)
+            main(date, monitoring_config)
+    
+
 
 if __name__=='__main__':
-    fire.Fire()
+    runner()

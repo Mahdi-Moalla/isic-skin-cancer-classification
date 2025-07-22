@@ -6,3 +6,4 @@ metadata:
 data:
   code_repo: "https://github.com/Mahdi-Moalla/isic-skin-cancer-classification"
   monitoring_img_hist_bins: "5"
+  mlflow_experiment_name: "isic-skin-cancer-classification"
