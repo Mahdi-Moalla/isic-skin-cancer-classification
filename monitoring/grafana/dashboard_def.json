@@ -29,6 +29,315 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "fixedColor": "dark-red",
+            "mode": "palette-classic-by-name"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "curr"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#f2f2f2",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "ref"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#a36e6e",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 8,
+      "options": {
+        "barRadius": 0,
+        "barWidth": 0.68,
+        "fullHighlight": false,
+        "groupWidth": 0.7,
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "vertical",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": -90,
+        "xTickLabelSpacing": 0
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT bin_label,\n       AVG(value) as curr\nFROM curr_hists\nWHERE date='$day'\n      AND color='$color'\nGROUP BY bin_label\nORDER BY CAST(bin_label AS REAL)",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PCC52D03280B7034C"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT bin_label,\n       AVG(value) as ref\nFROM reference_hist\nWHERE color='$color'\nGROUP BY bin_label\nORDER BY CAST(bin_label AS REAL)",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "Image Histograms per day and color",
+      "transformations": [
+        {
+          "id": "joinByField",
+          "options": {
+            "byField": "bin_label",
+            "mode": "inner"
+          }
+        }
+      ],
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PCC52D03280B7034C"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "fixedColor": "dark-red",
+            "mode": "fixed"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "fillOpacity": 50,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineStyle": {
+              "fill": "solid"
+            },
+            "pointShape": "circle",
+            "pointSize": {
+              "fixed": 5
+            },
+            "pointStrokeWidth": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "show": "lines"
+          },
+          "fieldMinMax": false,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 12
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mapping": "auto",
+        "series": [
+          {}
+        ],
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.2",
+      "repeatDirection": "h",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "select fx as fpr,  ty as tpr from roc \nWHERE date='$day'",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        },
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "PCC52D03280B7034C"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "hide": false,
+          "rawQuery": true,
+          "rawSql": "SELECT  auc FROM auc \nWHERE date='$day'",
+          "refId": "B",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "ROC  per day",
+      "type": "xychart"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "PCC52D03280B7034C"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "continuous-RdYlGr"
           },
           "custom": {
@@ -84,9 +393,9 @@
       },
       "gridPos": {
         "h": 8,
-        "w": 12,
+        "w": 11,
         "x": 0,
-        "y": 0
+        "y": 22
       },
       "id": 6,
       "options": {
@@ -108,7 +417,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT date, auc FROM roc ",
+          "rawSql": "SELECT date, auc FROM auc ",
           "refId": "A",
           "sql": {
             "columns": [
@@ -129,7 +438,7 @@
           }
         }
       ],
-      "title": "AUC",
+      "title": "AUCs",
       "type": "timeseries"
     },
     {
@@ -264,8 +573,8 @@
       "gridPos": {
         "h": 8,
         "w": 13,
-        "x": 0,
-        "y": 0
+        "x": 11,
+        "y": 22
       },
       "id": 1,
       "options": {
@@ -341,7 +650,7 @@
           }
         }
       ],
-      "title": "IMAGE  RED  MEAN",
+      "title": "Images red color mean",
       "transformations": [
         {
           "id": "calculateField",
@@ -552,8 +861,8 @@
       "gridPos": {
         "h": 8,
         "w": 11,
-        "x": 13,
-        "y": 0
+        "x": 0,
+        "y": 30
       },
       "id": 3,
       "options": {
@@ -629,7 +938,7 @@
           }
         }
       ],
-      "title": "IMAGE  BLUE  MEAN",
+      "title": "Images blue color mean",
       "transformations": [
         {
           "id": "calculateField",
@@ -840,8 +1149,8 @@
       "gridPos": {
         "h": 8,
         "w": 13,
-        "x": 0,
-        "y": 8
+        "x": 11,
+        "y": 30
       },
       "id": 2,
       "options": {
@@ -917,7 +1226,7 @@
           }
         }
       ],
-      "title": "IMAGE  GREEN  MEAN",
+      "title": "Images green color mean",
       "transformations": [
         {
           "id": "calculateField",
@@ -1028,7 +1337,7 @@
         "h": 19,
         "w": 23,
         "x": 0,
-        "y": 16
+        "y": 38
       },
       "id": 4,
       "options": {
@@ -1146,7 +1455,7 @@
         "h": 11,
         "w": 23,
         "x": 0,
-        "y": 35
+        "y": 57
       },
       "id": 5,
       "options": {
@@ -1238,6 +1547,32 @@
         "refresh": 1,
         "regex": "",
         "type": "query"
+      },
+      {
+        "current": {
+          "text": "r",
+          "value": "r"
+        },
+        "name": "color",
+        "options": [
+          {
+            "selected": true,
+            "text": "r",
+            "value": "r"
+          },
+          {
+            "selected": false,
+            "text": "b",
+            "value": "b"
+          },
+          {
+            "selected": false,
+            "text": "g",
+            "value": "g"
+          }
+        ],
+        "query": "r,b,g",
+        "type": "custom"
       }
     ]
   },
