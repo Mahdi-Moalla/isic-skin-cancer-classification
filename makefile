@@ -46,10 +46,11 @@ endif
 
 init-cluster:
 	microk8s start
-	bash utils/k8s_init/k8s_init.sh
+	bash utils/k8s_init/k8s_init.sh kube-system
 	microk8s enable hostpath-storage
 	microk8s  enable dns
 	microk8s enable nvidia
+	bash utils/k8s_init/k8s_init.sh gpu-operator-resources
 
 
 #  https://discuss.kubernetes.io/t/microk8s-images-prune-utility-for-production-servers/15874

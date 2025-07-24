@@ -95,7 +95,7 @@ with DAG(
         pod_template_dict=yaml.safe_load(
             Path(osp.join(
                 dag_file_path,'monitoring_pod.yml')).read_text()),
-        on_finish_action="keep_pod",
+        #on_finish_action="keep_pod",
         task_id="monitoring-task",
         env_vars=[k8s.V1EnvVar(name="dag_params",value="{{ params }}")],
         get_logs=True
