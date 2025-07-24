@@ -28,6 +28,8 @@ monitoring_db_secret_name:=monitoring-db-secret
 inference_webserver_db_name:=inference_webserver_db
 inference_webserver_db_secret_name:=inference-webserver-db-secret
 
+build_images=false
+
 
 init-microk8s:
 	sudo snap install microk8s --classic --channel=1.32
@@ -75,29 +77,39 @@ delete-cluster:
 
 
 init-images:
-	#bash monitoring/build_docker_image.sh ${monitoring_docker_image}
+ifeq ($(build_images), true)
+	bash monitoring/build_docker_image.sh ${monitoring_docker_image}
+endif
 	docker save -o monitoring_docker_image.tar  ${monitoring_docker_image} 
 	microk8s images import < monitoring_docker_image.tar
 	rm monitoring_docker_image.tar
 
-	#bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
+ifeq ($(build_images), true)
+	bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
+endif
 	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image} 
 	microk8s images import < ubuntu_toolset_docker_image.tar
 	rm ubuntu_toolset_docker_image.tar
 
-	#bash inference_webserver/webserver_docker_img/build_webserver_dockerfile.sh ${webserver_docker_image}
+ifeq ($(build_images), true)
+	bash inference_webserver/webserver_docker_img/build_webserver_dockerfile.sh ${webserver_docker_image}
+endif
 	docker save -o webserver_docker_image.tar  ${webserver_docker_image} 
 	microk8s images import < webserver_docker_image.tar
 	rm webserver_docker_image.tar
 
 
-	#bash training_pipeline/preprocess_data/build_preprocessor_image.sh ${preprocessor_docker_image}
+ifeq ($(build_images), true)
+	bash training_pipeline/preprocess_data/build_preprocessor_image.sh ${preprocessor_docker_image}
+endif
 	docker save -o preprocessor_docker_image.tar  ${preprocessor_docker_image} 
 	microk8s images import < preprocessor_docker_image.tar
 	rm preprocessor_docker_image.tar
 
-	#docker pull nvcr.io/nvidia/pytorch:25.05-py3
-	#bash training_pipeline/trainer/build_trainer_image.sh ${trainer_docker_image}
+	docker pull nvcr.io/nvidia/pytorch:25.05-py3
+ifeq ($(build_images), true)
+	bash training_pipeline/trainer/build_trainer_image.sh ${trainer_docker_image}
+endif
 	docker save -o trainer_docker_image.tar  ${trainer_docker_image} 
 	microk8s images import < trainer_docker_image.tar
 	rm trainer_docker_image.tar
@@ -269,3 +281,7 @@ init-apps: init-airflow init-dataset-http-server init-dbs init-adminer init-mlfl
 
 expose-all: expose-airflow expose-mlflow expose-adminer expose-kafka-ui expose-postgres
 	echo "all services exposed"
+
+
+init-all: init-cluster init-namespace init-images init-apps
+	echo "system ready"

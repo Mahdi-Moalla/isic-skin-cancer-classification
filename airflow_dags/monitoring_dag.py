@@ -1,4 +1,5 @@
-from kubernetes.client import models as k8s
+# pylint: disable=import-error
+from kubernetes.client import models as k8s 
 
 from airflow import DAG
 from airflow.models.param import Param, ParamsDict
@@ -100,8 +101,6 @@ with DAG(
         env_vars=[k8s.V1EnvVar(name="dag_params",value="{{ params }}")],
         get_logs=True
     )
-
-
 
     cfgmap_delete = KubernetesDeleteResourceOperator(
             task_id="delete_monitoring_cfgmap",
