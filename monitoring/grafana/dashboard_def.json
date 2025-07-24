@@ -277,7 +277,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "select fx as fpr,  ty as tpr from roc \nWHERE date='$day'",
+          "rawSql": "select fx as fpr,  ty as tpr from rocs \nWHERE date='$day'",
           "refId": "A",
           "sql": {
             "columns": [
@@ -306,7 +306,7 @@
           "format": "table",
           "hide": false,
           "rawQuery": true,
-          "rawSql": "SELECT  auc FROM auc \nWHERE date='$day'",
+          "rawSql": "SELECT  auc FROM aucs \nWHERE date='$day'",
           "refId": "B",
           "sql": {
             "columns": [
@@ -417,7 +417,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT date, auc FROM auc ",
+          "rawSql": "SELECT date, auc FROM aucs ",
           "refId": "A",
           "sql": {
             "columns": [

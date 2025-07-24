@@ -243,8 +243,8 @@ def main(date,
     for fx,ty in zip(fpr.tolist(),tpr.tolist() ):
         roc.append( {"date":date, "fx":fx, "ty":ty} )
 
-    roc_df=pd.DataFrame( roc )
-    auc_df=pd.DataFrame( [ {"date":date , "auc":auc(fpr, tpr) } ] )
+    rocs_df=pd.DataFrame( roc )
+    aucs_df=pd.DataFrame( [ {"date":date , "auc":auc(fpr, tpr) } ] )
 
     alarms_df = pd.DataFrame(alarms)
 
@@ -368,10 +368,10 @@ def main(date,
     drift.to_sql(name='drift',
                       con=engine,
                       if_exists='append')
-    roc_df.to_sql(name='roc',
+    rocs_df.to_sql(name='rocs',
                       con=engine,
                       if_exists='append')
-    auc_df.to_sql(name='auc',
+    aucs_df.to_sql(name='aucs',
                           con=engine,
                           if_exists='append')
     if len(alarms_df)>0:

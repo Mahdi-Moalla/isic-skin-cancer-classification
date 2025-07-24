@@ -21,6 +21,11 @@ spec:
               configMapKeyRef:
                 name: system-cfgmap
                 key: mlflow_experiment_name
+        - name: registry_model_name
+          valueFrom:
+              configMapKeyRef:
+                name: system-cfgmap
+                key: registry_model_name
         
       command: ["python"]
       args:
@@ -29,8 +34,12 @@ spec:
             import  json;
             import os;
             import mlflow;
-            mlflow.set_tracking_uri(uri=os.getenv("mlflow_server_url"));
+            from mlflow import MlflowClient;
+            mlflow_server_url=os.getenv("mlflow_server_url");
+            mlflow.set_tracking_uri(uri=mlflow_server_url);
             mlflow.set_experiment(os.getenv("mlflow_experiment_name"));
+            client = MlflowClient(tracking_uri=mlflow_server_url);
+            client.create_registered_model(os.getenv("registry_model_name"));
             run=mlflow.start_run();
             data={"run_id": run.info.run_id,
                   "experiment_name":os.getenv("mlflow_experiment_name"),

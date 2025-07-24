@@ -46,7 +46,10 @@ spec:
               key: mlflow_experiment_name
         
         - name: registry_model_name
-          value: {{ .Values.inference.model.registry.model_name }}
+          valueFrom:
+            configMapKeyRef:
+              name: system-cfgmap
+              key: registry_model_name
         - name: registry_model_version
           value: "{{ .Values.inference.model.registry.version }}"
         - name: py_artifacts_run_id
