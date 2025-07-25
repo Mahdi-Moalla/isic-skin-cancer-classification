@@ -285,3 +285,7 @@ expose-all: expose-airflow expose-mlflow expose-adminer expose-kafka-ui expose-p
 
 init-all: init-cluster init-namespace init-images init-apps
 	echo "system ready"
+
+code-formatter:
+	black --skip-string-normalization $(file)
+	isort $(file)

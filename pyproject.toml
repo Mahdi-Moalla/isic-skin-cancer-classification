@@ -1,0 +1,2 @@
+[tool.pylint.messages_control]
+disable = ["R0801"]
