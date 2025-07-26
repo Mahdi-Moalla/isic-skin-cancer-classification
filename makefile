@@ -230,7 +230,10 @@ init-inference-webserver:
 	 -f inference_webserver/helm_chart/inference_webserver/values.yaml\
 	 --set postgres_db.db_name=${inference_webserver_db_name}\
 	 --set postgres_db.existing_db_secret.name=${inference_webserver_db_secret_name}\
-	 -f kubernetes_files/inference_webserver_mlflow_artifacts.yml
+	 --set inference.model.registry.version=$(registry_model_version)\
+	 --set inference.py_artifacts_run_id=$(run_id)
+	
+	#-f kubernetes_files/inference_webserver_mlflow_artifacts.yml
 
 
 expose-inference-webserver:

@@ -35,8 +35,8 @@ if __name__ == '__main__':
     os.rename(model_checkpoint_file, 'model.pth')
 
     for artifact_path in py_artifacts:
-        artifact_uri = (
-            f"mlflow-artifacts:/{experiment_id}"
-            + f"/{py_artifacts_run_id}/artifacts/{artifact_path}"
-        )
+        artifact_uri = \
+            f"mlflow-artifacts:/{experiment_id}"\
+            + f"/{py_artifacts_run_id}/artifacts/{artifact_path}" # fmt: skip
+        print(artifact_uri)
         mlflow.artifacts.download_artifacts(artifact_uri=artifact_uri, dst_path='.')

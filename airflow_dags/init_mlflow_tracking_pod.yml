@@ -39,7 +39,8 @@ spec:
             mlflow.set_tracking_uri(uri=mlflow_server_url);
             mlflow.set_experiment(os.getenv("mlflow_experiment_name"));
             client = MlflowClient(tracking_uri=mlflow_server_url);
-            client.create_registered_model(os.getenv("registry_model_name"));
+            registry_model_name=os.getenv("registry_model_name");
+            client.create_registered_model(name=registry_model_name)  if len(client.search_registered_models(filter_string=f"name='{registry_model_name}'"))==0 else None;
             run=mlflow.start_run();
             data={"run_id": run.info.run_id,
                   "experiment_name":os.getenv("mlflow_experiment_name"),
