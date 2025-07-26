@@ -59,7 +59,7 @@ init-cluster:
 prune-storage:
 	crictl -r unix:///var/snap/microk8s/common/run/containerd.sock rmi --prune
 
-check-gpu-support:	
+check-gpu-support:
 	microk8s kubectl logs -n gpu-operator-resources -lapp=nvidia-operator-validator -c nvidia-operator-validator
 
 init-namespace:
@@ -80,21 +80,21 @@ init-images:
 ifeq ($(build_images), true)
 	bash monitoring/build_docker_image.sh ${monitoring_docker_image}
 endif
-	docker save -o monitoring_docker_image.tar  ${monitoring_docker_image} 
+	docker save -o monitoring_docker_image.tar  ${monitoring_docker_image}
 	microk8s images import < monitoring_docker_image.tar
 	rm monitoring_docker_image.tar
 
 ifeq ($(build_images), true)
 	bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
 endif
-	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image} 
+	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image}
 	microk8s images import < ubuntu_toolset_docker_image.tar
 	rm ubuntu_toolset_docker_image.tar
 
 ifeq ($(build_images), true)
 	bash inference_webserver/webserver_docker_img/build_webserver_dockerfile.sh ${webserver_docker_image}
 endif
-	docker save -o webserver_docker_image.tar  ${webserver_docker_image} 
+	docker save -o webserver_docker_image.tar  ${webserver_docker_image}
 	microk8s images import < webserver_docker_image.tar
 	rm webserver_docker_image.tar
 
@@ -102,7 +102,7 @@ endif
 ifeq ($(build_images), true)
 	bash training_pipeline/preprocess_data/build_preprocessor_image.sh ${preprocessor_docker_image}
 endif
-	docker save -o preprocessor_docker_image.tar  ${preprocessor_docker_image} 
+	docker save -o preprocessor_docker_image.tar  ${preprocessor_docker_image}
 	microk8s images import < preprocessor_docker_image.tar
 	rm preprocessor_docker_image.tar
 
@@ -110,7 +110,7 @@ endif
 ifeq ($(build_images), true)
 	bash training_pipeline/trainer/build_trainer_image.sh ${trainer_docker_image}
 endif
-	docker save -o trainer_docker_image.tar  ${trainer_docker_image} 
+	docker save -o trainer_docker_image.tar  ${trainer_docker_image}
 	microk8s images import < trainer_docker_image.tar
 	rm trainer_docker_image.tar
 
@@ -173,7 +173,7 @@ init-dbs:
 	  -n ${K8S_NAMESPACE}
 	bash utils/postgres_db/create_postgres_db_psql.sh ${K8S_NAMESPACE}\
 		${inference_webserver_db_name} ${inference_webserver_db_secret_name}
-	bash utils/postgres_db/create_grafana_user.sh ${K8S_NAMESPACE} 
+	bash utils/postgres_db/create_grafana_user.sh ${K8S_NAMESPACE}
 
 
 
@@ -231,7 +231,7 @@ init-inference-webserver:
 	 --set postgres_db.db_name=${inference_webserver_db_name}\
 	 --set postgres_db.existing_db_secret.name=${inference_webserver_db_secret_name}\
 	 -f kubernetes_files/inference_webserver_mlflow_artifacts.yml
-	 
+
 
 expose-inference-webserver:
 	kubectl port-forward --address 0.0.0.0 svc/gloo-proxy-${INFERENCE_WEBSERVER_NAME}\
@@ -241,7 +241,7 @@ expose-inference-webserver:
 remove-inference-webservice:
 	helm uninstall ${INFERENCE_WEBSERVER_NAME}
 	ps -C "kubectl port-forward --address 0.0.0.0 svc/gloo-proxy-${INFERENCE_WEBSERVER_NAME}" -o pid= | xargs kill -9
-	
+
 
 init-gloo-gateway:
 	kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml
@@ -267,7 +267,7 @@ remove-grafana:
 	helm uninstall ${GRAFANA_NAME}
 	ps -C "kubectl port-forward --address 0.0.0.0\
 	 svc/${GRAFANA_NAME}" -o pid= | xargs kill -9
-	
+
 
 expose-grafana:
 	kubectl port-forward --address 0.0.0.0 svc/${GRAFANA_NAME}\
@@ -289,3 +289,9 @@ init-all: init-cluster init-namespace init-images init-apps
 code-formatter:
 	black --skip-string-normalization $(file)
 	isort $(file)
+
+
+init-pre-commit:
+	pip install pre-commit
+	#pre-commit sample-config > .pre-commit-config.yaml
+	pre-commit install
