@@ -9,6 +9,8 @@ extraEmptyDirMounts:
     mountPath: /etc/grafana/provisioning/dashboards_def
   - name: provisioning-tmp
     mountPath: /etc/grafana/provisioning/tmp
+  - name: provisioning-alerting
+    mountPath: /etc/grafana/provisioning/alerting
 
 
 extraInitContainers:
@@ -23,12 +25,14 @@ extraInitContainers:
           export data_sources=/etc/grafana/provisioning/datasources &&
           export dashboards=/etc/grafana/provisioning/dashboards &&
           export dashboard_def=/etc/grafana/provisioning/dashboards_def &&
+          export alerts=/etc/grafana/provisioning/alerting &&
           cd $tmp_dir &&
           git clone $code_repo code_repo &&
           cd  code_repo &&
           cp monitoring/grafana/datasource.yml  $data_sources &&
           cp monitoring/grafana/dashboard_provider.yml $dashboards &&
-          cp monitoring/grafana/dashboard_def.json $dashboard_def
+          cp monitoring/grafana/dashboard_def.json $dashboard_def &&
+          cp monitoring/grafana/alert.json $alerts
     env:
       - name: code_repo
         valueFrom:
@@ -45,3 +49,5 @@ extraInitContainers:
         mountPath: /etc/grafana/provisioning/dashboards_def
       - name: provisioning-tmp
         mountPath: /etc/grafana/provisioning/tmp
+      - name: provisioning-alerting
+        mountPath: /etc/grafana/provisioning/alerting

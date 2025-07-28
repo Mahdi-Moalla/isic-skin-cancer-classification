@@ -18,9 +18,46 @@
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 0,
-  "id": 1,
+  "id": 2,
   "links": [],
   "panels": [
+    {
+      "description": "Skin cancer misses (score < 0.5)",
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 13,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 9,
+      "options": {
+        "alertInstanceLabelFilter": "",
+        "alertName": "Isic skin cancer misses",
+        "dashboardAlerts": false,
+        "folder": {},
+        "groupBy": [],
+        "groupMode": "default",
+        "maxItems": 20,
+        "showInactiveAlerts": false,
+        "sortOrder": 1,
+        "stateFilter": {
+          "error": true,
+          "firing": true,
+          "noData": true,
+          "normal": true,
+          "pending": true,
+          "recovering": true
+        },
+        "viewMode": "list"
+      },
+      "pluginVersion": "12.0.2",
+      "title": "Isic Skin Cancer Misses ",
+      "type": "alertlist"
+    },
     {
       "datasource": {
         "type": "grafana-postgresql-datasource",
@@ -100,7 +137,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 0
+        "y": 13
       },
       "id": 8,
       "options": {
@@ -250,7 +287,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 12
+        "y": 25
       },
       "id": 7,
       "options": {
@@ -271,7 +308,6 @@
         }
       },
       "pluginVersion": "12.0.2",
-      "repeatDirection": "h",
       "targets": [
         {
           "editorMode": "code",
@@ -395,7 +431,7 @@
         "h": 8,
         "w": 11,
         "x": 0,
-        "y": 22
+        "y": 35
       },
       "id": 6,
       "options": {
@@ -574,7 +610,7 @@
         "h": 8,
         "w": 13,
         "x": 11,
-        "y": 22
+        "y": 35
       },
       "id": 1,
       "options": {
@@ -862,7 +898,7 @@
         "h": 8,
         "w": 11,
         "x": 0,
-        "y": 30
+        "y": 43
       },
       "id": 3,
       "options": {
@@ -1150,7 +1186,7 @@
         "h": 8,
         "w": 13,
         "x": 11,
-        "y": 30
+        "y": 43
       },
       "id": 2,
       "options": {
@@ -1337,7 +1373,7 @@
         "h": 19,
         "w": 23,
         "x": 0,
-        "y": 38
+        "y": 51
       },
       "id": 4,
       "options": {
@@ -1455,7 +1491,7 @@
         "h": 11,
         "w": 23,
         "x": 0,
-        "y": 57
+        "y": 70
       },
       "id": 5,
       "options": {

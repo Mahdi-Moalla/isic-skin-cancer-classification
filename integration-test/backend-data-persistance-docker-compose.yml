@@ -1,0 +1,178 @@
+services:
+  postgres:
+    image: docker.io/bitnami/postgresql:16.1.0-debian-11-r15
+    environment:
+      - POSTGRESQL_PASSWORD=postgres
+    ports:
+      - 5432:5432
+    networks:
+      - integration-private-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  
+  kafka:
+    image: kafkace/kafka:v3.7.1-63ba8d2
+    logging:
+      driver: "none"
+    ports:
+      - 9092:9092
+    networks:
+      - integration-private-net
+    healthcheck:
+      test: ["CMD-SHELL", "echo 'test-message' | /opt/kafka/bin/kafka-console-producer.sh --broker-list localhost:9092 --topic health-check-topic && /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic health-check-topic --from-beginning --max-messages 1 | grep 'test-message'"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+  # adminer:
+  #   image: docker.io/adminer:4.8.1-standalone
+  #   networks:
+  #     - integration-test-net
+  #   ports:
+  #     - 8880:8080
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  # kafka-ui:
+  #   image: provectuslabs/kafka-ui:v0.7.2
+  #   networks:
+  #     - integration-test-net
+  #   ports:
+  #     - 8808:8080
+  #   environment:
+  #     - DYNAMIC_CONFIG_ENABLED=true
+  #   depends_on:
+  #     kafka:
+  #       condition: service_healthy
+
+
+  
+  
+  data-persistance:
+    image: webserver:latest
+    pull_policy: never
+    volumes:
+      - ${parent_dir}:/home/repo_code
+      - images-data:/images
+    entrypoint: ["bash","inference_webserver/data_persistance/data_persistance.sh"]
+    working_dir: /home/repo_code
+    networks:
+      - integration-private-net
+    environment:
+      - kafka_server=kafka:9092
+      - kafka_topic_name=isic_topic
+      - postgres_server=postgres
+      - postgres_port=5432
+      - postgres_db_name=postgres
+      - postgres_db_user=postgres
+      - postgres_db_password=postgres
+      - images_folder=/images
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
+
+
+  
+  backend:
+    image: webserver:latest
+    pull_policy: never
+    volumes:
+      - ${parent_dir}:/home/repo_code
+    entrypoint: ["bash","inference_webserver/backend/run_backend.sh"]
+    working_dir: /home/repo_code
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=PathPrefix(`/v1/backend`)"
+      - "traefik.http.routers.backend.entrypoints=traefik"
+      - "traefik.http.services.backend.loadbalancer.server.port=8080"
+    networks:
+      - integration-private-net
+    # ports:
+    #   - 8080
+    environment:
+      - kafka_server=kafka:9092
+      - kafka_topic_name=isic_topic
+      - kafka_topic_num_partitions=1
+      - kafka_topic_replication_factor=1
+      - isic_schema_file=isic_record.avsc
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: python -c "import requests; exit(0) if requests.get('http://localhost:8080/v1/backend/test').status_code==200 else exit(1)"
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+
+  data-persistance-service:
+    image: webserver:latest
+    pull_policy: never
+    volumes:
+      - ${parent_dir}:/home/repo_code
+      - images-data:/images
+    entrypoint: ["bash","inference_webserver/data_persistance/run_service.sh"]
+    working_dir: /home/repo_code
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.data-persistance-service.rule=PathPrefix(`/v1/data-persistance`)"
+      - "traefik.http.routers.data-persistance-service.entrypoints=traefik"
+      - "traefik.http.services.data-persistance-service.loadbalancer.server.port=8080"
+    networks:
+      - integration-private-net
+    # ports:
+    #   - 8080
+    environment:
+      - postgres_server=postgres
+      - postgres_port=5432
+      - postgres_db_name=postgres
+      - postgres_db_user=postgres
+      - postgres_db_password=postgres
+      - images_folder=/images
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: python -c "import requests; exit(0) if requests.get('http://localhost:8080/v1/data-persistance/test').status_code==200 else exit(1)"
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 5s
+
+  traefik:
+    image: "traefik:v3.5"
+    container_name: "traefik"
+    command:
+      - "--log.level=INFO"
+      - "--api.insecure=false"
+      - "--api.dashboard=false"
+      - "--providers.docker=true"
+      - "--providers.docker.network=integration-private-net"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.traefik.address=:8080"
+      - "--entryPoints.web.address=:80"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    networks:
+      - integration-private-net
+      - integration-public-net
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+
+volumes:
+  images-data:
+
+networks:
+  integration-private-net:
+    name: integration-private-net
+    internal: true
+  integration-public-net:
+    name: integration-public-net
+    internal: false
