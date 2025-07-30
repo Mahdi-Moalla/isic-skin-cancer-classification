@@ -77,17 +77,11 @@ def init_config():
     """
     data_persistance_config = Dict()
 
-    data_persistance_config.db.postgres_server = os.getenv(
-        "postgres_server", "postgres-db"
-    )
+    data_persistance_config.db.postgres_server = os.getenv("postgres_server", "postgres-db")
     data_persistance_config.db.postgres_port = os.getenv("postgres_port", "5432")
 
-    data_persistance_config.db.postgres_db_name = os.getenv(
-        "postgres_db_name", "isic_db"
-    )
-    data_persistance_config.db.postgres_db_user = os.getenv(
-        "postgres_db_user", "isic_db_user"
-    )
+    data_persistance_config.db.postgres_db_name = os.getenv("postgres_db_name", "isic_db")
+    data_persistance_config.db.postgres_db_user = os.getenv("postgres_db_user", "isic_db_user")
     data_persistance_config.db.postgres_db_password = os.getenv(
         "postgres_db_password", "isic_db_password"
     )
@@ -103,9 +97,7 @@ def init_config():
 
     data_persistance_config.kafka.kafka_server = os.getenv("kafka_server", "kafka:9092")
 
-    data_persistance_config.kafka.kafka_topic_name = os.getenv(
-        'kafka_topic_name', 'isic_topic'
-    )
+    data_persistance_config.kafka.kafka_topic_name = os.getenv('kafka_topic_name', 'isic_topic')
 
     return data_persistance_config
 
@@ -156,9 +148,7 @@ def main(onnx_model_path='./model.onnx'):
 
             image_np = np.array(pil_image)
 
-            preprocessed_image_np = preprocess_transform(image=image_np)[
-                'image'
-            ].transpose(2, 0, 1)
+            preprocessed_image_np = preprocess_transform(image=image_np)['image'].transpose(2, 0, 1)
 
             image_torch = torch.tensor(preprocessed_image_np)
 

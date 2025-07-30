@@ -2,16 +2,17 @@
 data persistance service
 answers queries on the received data
 """
+
+import glob
+import importlib
 import logging
 import os
 import os.path as osp
-from datetime import datetime
-import importlib
-import glob
 import sys
+from datetime import datetime
 
 from addict import Dict
-from flask import Flask, jsonify,  request, send_file
+from flask import Flask, jsonify, request, send_file
 
 logging.basicConfig(
     level=logging.INFO,
@@ -29,19 +30,13 @@ def init_config():
     """
     generate config from environment variables
     """
-    data_persistance_config = Dict()  #pylint: disable=redefined-outer-name
+    data_persistance_config = Dict()  # pylint: disable=redefined-outer-name
 
-    data_persistance_config.db.postgres_server = os.getenv(
-        "postgres_server", "postgres-db"
-    )
+    data_persistance_config.db.postgres_server = os.getenv("postgres_server", "postgres-db")
     data_persistance_config.db.postgres_port = os.getenv("postgres_port", "5432")
 
-    data_persistance_config.db.postgres_db_name = os.getenv(
-        "postgres_db_name", "isic_db"
-    )
-    data_persistance_config.db.postgres_db_user = os.getenv(
-        "postgres_db_user", "isic_db_user"
-    )
+    data_persistance_config.db.postgres_db_name = os.getenv("postgres_db_name", "isic_db")
+    data_persistance_config.db.postgres_db_user = os.getenv("postgres_db_user", "isic_db_user")
     data_persistance_config.db.postgres_db_password = os.getenv(
         "postgres_db_password", "isic_db_password"
     )
@@ -66,9 +61,7 @@ logging.info(str(data_persistance_config))
 
 app = Flask(__name__)
 
-db_isic_data_interface = db_isic_data(
-    db_connector(data_persistance_config.db.psycopg_conn_str)
-)
+db_isic_data_interface = db_isic_data(db_connector(data_persistance_config.db.psycopg_conn_str))
 
 
 @app.route('/v1/data-persistance/query', methods=['GET'])
@@ -108,14 +101,10 @@ def get_image():
         return jsonify({"error": "record does not exist"})
     isic_id_str = Dict(res).record.isic_id
     print(data_persistance_config.images_folder)
-    file_path = glob.glob(
-        osp.join(data_persistance_config.images_folder, f'{isic_id_str}*')
-    )
+    file_path = glob.glob(osp.join(data_persistance_config.images_folder, f'{isic_id_str}*'))
     if len(file_path) == 0:
         return jsonify({"error": "image not found"}), 500
-    return send_file(
-        file_path[0], as_attachment=True, download_name=file_path[0].split('/')[-1]
-    )
+    return send_file(file_path[0], as_attachment=True, download_name=file_path[0].split('/')[-1])
 
 
 @app.route('/v1/data-persistance/dayquery', methods=['GET'])

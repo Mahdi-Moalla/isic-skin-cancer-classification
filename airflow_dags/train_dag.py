@@ -8,12 +8,14 @@ from pathlib import Path
 
 import yaml
 from airflow import DAG
+
 # from airflow.decorators import task
 from airflow.decorators import task_group
-from airflow.providers.cncf.kubernetes.operators.pod import \
-    KubernetesPodOperator
+from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.providers.cncf.kubernetes.operators.resource import (
-    KubernetesCreateResourceOperator, KubernetesDeleteResourceOperator)
+    KubernetesCreateResourceOperator,
+    KubernetesDeleteResourceOperator,
+)
 from kubernetes.client import models as k8s
 
 NAMESPACE = "isic-skin-cancer-classification"
@@ -78,18 +80,14 @@ with DAG(
         """
         task group for applying pvc and configmap
         """
-        pvc_create = (  # pylint: disable=unused-variable
-            KubernetesCreateResourceOperator(
-                task_id="create_training_pipeline_pvc",
-                yaml_conf=TRAIN_PVC_CONF,
-            )
+        pvc_create = KubernetesCreateResourceOperator(  # pylint: disable=unused-variable
+            task_id="create_training_pipeline_pvc",
+            yaml_conf=TRAIN_PVC_CONF,
         )
 
-        cfgmap_create = (  # pylint: disable=unused-variable
-            KubernetesCreateResourceOperator(
-                task_id="create_training_pipeline_cfgmap",
-                yaml_conf=TRAIN_CFG_MAP,
-            )
+        cfgmap_create = KubernetesCreateResourceOperator(  # pylint: disable=unused-variable
+            task_id="create_training_pipeline_cfgmap",
+            yaml_conf=TRAIN_CFG_MAP,
         )
 
     @task_group()
@@ -111,9 +109,7 @@ with DAG(
         namespace=NAMESPACE,
         name="data_downloader",
         pod_template_dict=yaml.safe_load(
-            Path(osp.join(DAG_FILE_PATH, 'data_download_pod.yml')).read_text(
-                encoding="utf-8"
-            )
+            Path(osp.join(DAG_FILE_PATH, 'data_download_pod.yml')).read_text(encoding="utf-8")
         ),
         task_id="data-downloader",
         get_logs=True,
@@ -136,9 +132,7 @@ with DAG(
         namespace=NAMESPACE,
         name="data_preprocessor",
         pod_template_dict=yaml.safe_load(
-            Path(osp.join(DAG_FILE_PATH, 'data_preprocess_pod.yml')).read_text(
-                encoding="utf-8"
-            )
+            Path(osp.join(DAG_FILE_PATH, 'data_preprocess_pod.yml')).read_text(encoding="utf-8")
         ),
         task_id="data-preprocessor",
         do_xcom_push=True,

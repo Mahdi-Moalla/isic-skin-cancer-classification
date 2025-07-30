@@ -12,7 +12,9 @@ import torch
 from torch.utils.data import Dataset, Sampler
 
 
-class isic_skin_cancer_datset(Dataset):  # pylint: disable=invalid-name, too-many-instance-attributes
+class isic_skin_cancer_datset(
+    Dataset
+):  # pylint: disable=invalid-name, too-many-instance-attributes
     """
     isic skin cancer dataset
     """
@@ -77,6 +79,7 @@ class isic_train_sampler(Sampler):  # pylint: disable=invalid-name
     """
 
     def __init__(self, isic_dataset, pos_ratio=0.5, total_size=2**16):
+        super().__init__()
         self.pos_idxs = []
         self.neg_idxs = []
 

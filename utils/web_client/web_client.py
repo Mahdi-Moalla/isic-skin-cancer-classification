@@ -14,9 +14,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s [%(levelname)s]: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s]: %(message)s")
 
 
 def process_record(record, date):
@@ -43,9 +41,7 @@ def process_record(record, date):
         'image': ('image', image_bytes, 'application/octet-stream'),
     }
 
-    result = requests.post(
-        webserver_uri + "/v1/backend/upload_record", files=data, timeout=1
-    )
+    result = requests.post(webserver_uri + "/v1/backend/upload_record", files=data, timeout=1)
     print(result.text)
 
 

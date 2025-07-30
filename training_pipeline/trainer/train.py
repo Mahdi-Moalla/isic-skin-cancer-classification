@@ -4,9 +4,12 @@ main training script
 
 #  pylint: disable=import-error, wrong-import-position
 
-import json
+# isort: off
 import os
 import os.path as osp
+
+# isort: on
+import json
 import shutil
 import warnings
 from pathlib import Path
@@ -19,23 +22,29 @@ import h5py
 import mlflow
 import numpy as np
 import pandas as pd
-import pytorch_lightning as pl  # #######
+
 # import torch
 from addict import Dict
 from isic_datset import isic_skin_cancer_datset, isic_train_sampler
 from isic_model import isic_classifier
 from PIL import Image, ImageStat
-from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
-from pytorch_lightning.loggers import CSVLogger
 from scorer import binary_auroc_scorer
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+# isort: off
+import pytorch_lightning as pl
+from pytorch_lightning.loggers import CSVLogger
+from pytorch_lightning.callbacks import (
+    ModelCheckpoint,
+    LearningRateMonitor,
+)
 
-def log_train_data(
-    metadata_file, image_file, isic_ids
-):  # pylint: disable=too-many-locals
+# isort: on
+
+
+def log_train_data(metadata_file, image_file, isic_ids):  # pylint: disable=too-many-locals
     """
     log training data to be used for comparison
     in the monitoring component
@@ -89,9 +98,7 @@ def log_train_data(
     data_df = pd.DataFrame(data)
     data_df.to_parquet('monitoring_reference_data.parquet', engine='pyarrow')
 
-    mlflow.log_artifact(
-        'monitoring_reference_data.parquet', 'monitoring_reference_data'
-    )
+    mlflow.log_artifact('monitoring_reference_data.parquet', 'monitoring_reference_data')
 
     os.remove('monitoring_reference_data.parquet')
 
@@ -102,15 +109,12 @@ def log_train_data(
                 {
                     "color": color,
                     "bin_label": bin_label,
-                    "value": hists[color][bin_label].sum
-                    / hists[color][bin_label].count,
+                    "value": hists[color][bin_label].sum / hists[color][bin_label].count,
                 }
             )
 
     cumul_hist_df = pd.DataFrame(cumul_hist)
-    cumul_hist_df.to_parquet(
-        'monitoring_reference_cumul_hist.parquet', engine='pyarrow'
-    )
+    cumul_hist_df.to_parquet('monitoring_reference_cumul_hist.parquet', engine='pyarrow')
 
     mlflow.log_artifact(
         'monitoring_reference_cumul_hist.parquet', 'monitoring_reference_cumul_hist'
@@ -194,9 +198,7 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     trainer.fold_i = fold_i
 
-    trainer.fit(
-        model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
-    )
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
     best_model_path = osp.join(config.checkpoints_dir, f'best_{fold_i}.ckpt')
 
@@ -204,7 +206,7 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     print('%%%%%%%%%%% finetuning.....')
 
-    model = isic_classifier.load_from_checkpoint(
+    model = isic_classifier.load_from_checkpoint(  # pylint: disable=no-value-for-parameter
         best_model_path, config=config, train_mode='finetuning'
     )
 
@@ -230,14 +232,12 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     trainer.fold_i = fold_i
 
-    trainer.fit(
-        model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader
-    )
+    trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
     best_model_path = osp.join(config.checkpoints_dir, f'best_finetune_{fold_i}.ckpt')
     mlflow.log_artifact(best_model_path, artifact_path="best_finetune")
 
-    final_model = isic_classifier.load_from_checkpoint(
+    final_model = isic_classifier.load_from_checkpoint(  # pylint: disable=no-value-for-parameter
         best_model_path, config=config, train_mode='finetuning'
     )
     mlflow.pytorch.log_model(final_model, name="fold_best")
@@ -266,10 +266,8 @@ def infer_test_data(config, val_transforms):
 
     for fold_i in range(config.n_fold):
 
-        best_model_path = osp.join(
-            config.checkpoints_dir, f'best_finetune_{fold_i}.ckpt'
-        )
-        model = isic_classifier.load_from_checkpoint(
+        best_model_path = osp.join(config.checkpoints_dir, f'best_finetune_{fold_i}.ckpt')
+        model = isic_classifier.load_from_checkpoint(  # pylint: disable=no-value-for-parameter
             best_model_path, config=config, train_mode='finetuning'
         )
 
@@ -305,9 +303,7 @@ def main(  # pylint: disable=too-many-locals
     mlflow.set_experiment(run_context["experiment_name"])
     with mlflow.start_run(run_id=run_context["run_id"]):
 
-        mlflow.log_artifacts(
-            str(Path(__file__).parent.resolve()), artifact_path="trainer"
-        )
+        mlflow.log_artifacts(str(Path(__file__).parent.resolve()), artifact_path="trainer")
 
         mlflow.pytorch.autolog()
 
@@ -345,33 +341,23 @@ def main(  # pylint: disable=too-many-locals
         print('########## StratifiedKFold ##########')
         skf = StratifiedKFold(n_splits=config.n_fold)
         for i, (train_index, val_index) in enumerate(skf.split(x, y)):
-            with mlflow.start_run(
-                run_name=f"fold_{i}", nested=True, log_system_metrics=True
-            ):
+            with mlflow.start_run(run_name=f"fold_{i}", nested=True, log_system_metrics=True):
                 mlflow.pytorch.autolog()
-                print(
-                    '#########################################################################'
-                )
-                print(
-                    '#########################################################################'
-                )
+                print('#########################################################################')
+                print('#########################################################################')
                 print(f'fold {i}: {len(val_index)/len(y)}  {sum(y[val_index])/sum(y)}')
                 x_train = train_metadata.loc[train_index, 'isic_id']
                 x_val = train_metadata.loc[val_index, 'isic_id']
 
                 # reduce val dataset
                 val_pos = train_metadata.loc[
-                    (train_metadata['isic_id'].isin(x_val))
-                    & (train_metadata['target'] == 1)
+                    (train_metadata['isic_id'].isin(x_val)) & (train_metadata['target'] == 1)
                 ]
                 val_neg = train_metadata.loc[
-                    (train_metadata['isic_id'].isin(x_val))
-                    & (train_metadata['target'] == 0)
+                    (train_metadata['isic_id'].isin(x_val)) & (train_metadata['target'] == 0)
                 ]
 
-                reduced_x_val = pd.concat(
-                    [val_pos['isic_id'], val_neg.loc[::50, 'isic_id']]
-                )
+                reduced_x_val = pd.concat([val_pos['isic_id'], val_neg.loc[::50, 'isic_id']])
                 # reduced_X_val=pd.concat([val_pos['isic_id'],
                 #                         val_neg.sample(frac=0.2)['isic_id']])
                 # reduced_X_val.shape
@@ -382,9 +368,7 @@ def main(  # pylint: disable=too-many-locals
                 print('######### training #############')
                 fold_train(config, i, train_dataloader, val_dataloader, logger)
 
-        logs = pd.read_csv(
-            osp.join(config.log_dir, 'lightning_logs/version_0/metrics.csv')
-        )
+        logs = pd.read_csv(osp.join(config.log_dir, 'lightning_logs/version_0/metrics.csv'))
 
         logs = logs.loc[
             logs['log_val'] == 1,

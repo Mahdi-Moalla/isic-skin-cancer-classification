@@ -98,9 +98,7 @@ class db_isic_data:
         res_cur = self.db_conn.sql_query(query)
         return res_cur.fetchall()
 
-    def query_records_by_timestamp(
-        self, start_timestamp: datetime, end_timestamp: datetime
-    ):
+    def query_records_by_timestamp(self, start_timestamp: datetime, end_timestamp: datetime):
         """
         query records with upload time between start and
         end timestamps

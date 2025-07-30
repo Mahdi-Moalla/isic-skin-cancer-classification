@@ -3,6 +3,7 @@ daily monitoring script
 """
 
 import importlib
+
 # pylint: disable=import-error
 import io
 import json
@@ -33,22 +34,14 @@ def init_config():
     """
     monitoring_config = Dict()
 
-    monitoring_config.postgres_db.server = os.getenv(
-        "postgres_server", "legion-pro-7-16arx8h"
-    )
+    monitoring_config.postgres_db.server = os.getenv("postgres_server", "legion-pro-7-16arx8h")
     monitoring_config.postgres_db.port = os.getenv(
         "postgres_port", "5432"
     )  # pylint: disable=invalid-envvar-default
 
-    monitoring_config.postgres_db.db_name = os.getenv(
-        "postgres_db_name", "monitoring_db"
-    )
-    monitoring_config.postgres_db.user_name = os.getenv(
-        "postgres_db_user", "monitoring_user"
-    )
-    monitoring_config.postgres_db.password = os.getenv(
-        "postgres_db_password", "monitoring_pass"
-    )
+    monitoring_config.postgres_db.db_name = os.getenv("postgres_db_name", "monitoring_db")
+    monitoring_config.postgres_db.user_name = os.getenv("postgres_db_user", "monitoring_user")
+    monitoring_config.postgres_db.password = os.getenv("postgres_db_password", "monitoring_pass")
 
     # pylint: disable=consider-using-f-string
     psycopg_conn_str = "postgresql+psycopg://{}:{}@{}:{}/{}".format(
@@ -72,9 +65,7 @@ def init_config():
     #    int(os.getenv("hist_bins",25))
 
     monitoring_config.monitoring_img_hist_bins = int(
-        os.getenv(  # pylint: disable=invalid-envvar-default
-            "monitoring_img_hist_bins", 5
-        )
+        os.getenv("monitoring_img_hist_bins", 5)  # pylint: disable=invalid-envvar-default
     )
 
     monitoring_config.mlflow_server_url = os.getenv(
@@ -84,9 +75,7 @@ def init_config():
         'mlflow_experiment_name', 'isic-skin-cancer-classification'
     )
 
-    monitoring_config.fold_run_id = os.getenv(
-        'fold_run_id', 'f5303275ff1545aeb4d0ec11fe4d7cff'
-    )
+    monitoring_config.fold_run_id = os.getenv('fold_run_id', 'f5303275ff1545aeb4d0ec11fe4d7cff')
 
     return monitoring_config
 
@@ -124,8 +113,7 @@ def main(date, monitoring_config):
     )
 
     monitoring_reference_cumul_hist = mlflow.artifacts.download_artifacts(
-        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.fold_run_id}'
-        + ''
+        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.fold_run_id}' + ''
         '/artifacts/monitoring_reference_cumul_hist/monitoring_reference_cumul_hist.parquet',
         dst_path='.',
     )
@@ -179,9 +167,7 @@ def main(date, monitoring_config):
         targets.append(record.target)
 
         if targets[-1] == 1 and scores[-1] < 0.5:
-            alarms.append(
-                {"date": date, "isic_id": record.isic_id, "score": record.score}
-            )
+            alarms.append({"date": date, "isic_id": record.isic_id, "score": record.score})
 
         image_response = requests.get(
             f"{monitoring_config.inference_webserver_host}/v1/data-persistance/getimage",
@@ -273,16 +259,10 @@ def main(date, monitoring_config):
         # curr std: {metric.result.current_characteristics.std}
         # """
         # print(output)
-        curr_means[metric.result.column_name] = (
-            metric.result.current_characteristics.mean
-        )
-        ref_means[metric.result.column_name] = (
-            metric.result.reference_characteristics.mean
-        )
+        curr_means[metric.result.column_name] = metric.result.current_characteristics.mean
+        ref_means[metric.result.column_name] = metric.result.reference_characteristics.mean
         curr_stds[metric.result.column_name] = metric.result.current_characteristics.std
-        ref_stds[metric.result.column_name] = (
-            metric.result.reference_characteristics.std
-        )
+        ref_stds[metric.result.column_name] = metric.result.reference_characteristics.std
 
     report = Report(metrics=[ColumnDriftMetric(c) for c in img_feats + tab_features])
     report.run(
@@ -326,9 +306,7 @@ def main(date, monitoring_config):
     engine = create_engine(monitoring_config.postgres_db.psycopg_conn_str)
 
     try:
-        reference_cumul_hist_df.to_sql(
-            name="reference_hist", con=engine, if_exists='fail'
-        )
+        reference_cumul_hist_df.to_sql(name="reference_hist", con=engine, if_exists='fail')
         ref_means.to_sql(name="ref_means", con=engine, if_exists='fail')
         ref_stds.to_sql(name="ref_stds", con=engine, if_exists='fail')
     except ValueError:

@@ -1,6 +1,7 @@
 """
 Initial data prepare
 """
+
 import os
 import os.path as osp
 
@@ -25,7 +26,7 @@ def main(
         if osp.isdir(output_path):
             assert len(os.listdir(output_path)) == 0, 'output path is not empty'
         else:
-            raise Exception('invalid output path') # pylint: disable=broad-exception-raised
+            raise Exception('invalid output path')  # pylint: disable=broad-exception-raised
     else:
         os.makedirs(output_path)
 

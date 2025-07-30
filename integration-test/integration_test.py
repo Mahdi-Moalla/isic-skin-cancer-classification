@@ -2,11 +2,11 @@
 integration test python code
 """
 
-import os
-import sys
 import json
-import time
+import os
 import pickle
+import sys
+import time
 
 import requests
 from deepdiff import DeepDiff

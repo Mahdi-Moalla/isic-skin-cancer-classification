@@ -9,10 +9,11 @@ from pathlib import Path
 import yaml
 from airflow import DAG
 from airflow.models.param import Param
-from airflow.providers.cncf.kubernetes.operators.pod import \
-    KubernetesPodOperator
+from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.providers.cncf.kubernetes.operators.resource import (
-    KubernetesCreateResourceOperator, KubernetesDeleteResourceOperator)
+    KubernetesCreateResourceOperator,
+    KubernetesDeleteResourceOperator,
+)
 from kubernetes.client import models as k8s
 
 NAMESPACE = "isic-skin-cancer-classification"
@@ -87,9 +88,7 @@ with DAG(
         namespace=NAMESPACE,
         name="monitoring-pod",
         pod_template_dict=yaml.safe_load(
-            Path(osp.join(DAG_FILE_PATH, 'monitoring_pod.yml')).read_text(
-                encoding="utf-8"
-            )
+            Path(osp.join(DAG_FILE_PATH, 'monitoring_pod.yml')).read_text(encoding="utf-8")
         ),
         # on_finish_action="keep_pod",
         task_id="monitoring-task",

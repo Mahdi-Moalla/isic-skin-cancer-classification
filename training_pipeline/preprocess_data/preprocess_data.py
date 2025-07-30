@@ -40,9 +40,7 @@ def preprocess_data(
     """
     if osp.exists(preprocessed_data_path):
         if osp.isdir(preprocessed_data_path):
-            assert (
-                len(os.listdir(preprocessed_data_path)) == 0
-            ), 'output path is not empty'
+            assert len(os.listdir(preprocessed_data_path)) == 0, 'output path is not empty'
         else:
             raise NotADirectoryError('invalid output path')
     else:
@@ -58,25 +56,19 @@ def preprocess_data(
             str(Path(__file__).parent.resolve()), artifact_path="data_preprocessor"
         )
 
-        shutil.copy(
-            osp.join(input_data_path, 'train-metadata.csv'), preprocessed_data_path
-        )
+        shutil.copy(osp.join(input_data_path, 'train-metadata.csv'), preprocessed_data_path)
         # shutil.copy(osp.join(input_data_path,'test-metadata.csv'),
         #            preprocessed_data_path)
 
         for split in ['train']:  # ,'test']:
-            with h5py.File(
-                osp.join(input_data_path, f'{split}-image.hdf5'), 'r'
-            ) as f_in:
+            with h5py.File(osp.join(input_data_path, f'{split}-image.hdf5'), 'r') as f_in:
                 with h5py.File(
                     osp.join(preprocessed_data_path, f'{split}-image.hdf5'), 'w'
                 ) as f_out:
                     for isic_id in tqdm(f_in.keys()):
                         pil_image = Image.open(io.BytesIO(f_in[isic_id][()]))
                         image_np = np.array(pil_image)
-                        preprocessed_image_np = preprocess_transform(image=image_np)[
-                            'image'
-                        ]
+                        preprocessed_image_np = preprocess_transform(image=image_np)['image']
                         f_out[isic_id] = preprocessed_image_np[...].transpose(2, 0, 1)
 
     with open('/airflow/xcom/return.json', 'w', encoding="utf-8") as f:

@@ -42,17 +42,11 @@ def init_config():
     """
     data_persistance_config = Dict()
 
-    data_persistance_config.db.postgres_server = os.getenv(
-        "postgres_server", "postgres-db"
-    )
+    data_persistance_config.db.postgres_server = os.getenv("postgres_server", "postgres-db")
     data_persistance_config.db.postgres_port = os.getenv("postgres_port", "5432")
 
-    data_persistance_config.db.postgres_db_name = os.getenv(
-        "postgres_db_name", "isic_db"
-    )
-    data_persistance_config.db.postgres_db_user = os.getenv(
-        "postgres_db_user", "isic_db_user"
-    )
+    data_persistance_config.db.postgres_db_name = os.getenv("postgres_db_name", "isic_db")
+    data_persistance_config.db.postgres_db_user = os.getenv("postgres_db_user", "isic_db_user")
     data_persistance_config.db.postgres_db_password = os.getenv(
         "postgres_db_password", "isic_db_password"
     )
@@ -70,9 +64,7 @@ def init_config():
 
     data_persistance_config.kafka.kafka_server = os.getenv("kafka_server", "kafka:9092")
 
-    data_persistance_config.kafka.kafka_topic_name = os.getenv(
-        'kafka_topic_name', 'isic_topic'
-    )
+    data_persistance_config.kafka.kafka_topic_name = os.getenv('kafka_topic_name', 'isic_topic')
 
     return data_persistance_config
 
@@ -85,9 +77,7 @@ def main():
 
     logging.info(data_persistance_config)
 
-    db_isic_data_interface = db_isic_data(
-        db_connector(data_persistance_config.db.psycopg_conn_str)
-    )
+    db_isic_data_interface = db_isic_data(db_connector(data_persistance_config.db.psycopg_conn_str))
 
     db_isic_data_interface.create_table()
 

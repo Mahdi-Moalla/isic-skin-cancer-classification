@@ -6,10 +6,11 @@ from pathlib import Path
 import yaml
 from airflow import DAG
 from airflow.decorators import task
-from airflow.providers.cncf.kubernetes.operators.pod import \
-    KubernetesPodOperator
+from airflow.providers.cncf.kubernetes.operators.pod import KubernetesPodOperator
 from airflow.providers.cncf.kubernetes.operators.resource import (
-    KubernetesCreateResourceOperator, KubernetesDeleteResourceOperator)
+    KubernetesCreateResourceOperator,
+    KubernetesDeleteResourceOperator,
+)
 from kubernetes.client import models as k8s
 
 pvc_conf = """
@@ -117,12 +118,8 @@ with DAG(
         task_id="k8s_xcom_pull_task",
         namespace="isic-skin-cancer-classification",
         env_vars=[
-            k8s.V1EnvVar(
-                name="XCOM_DATA1", value="{{ task_instance.xcom_pull('write-xcom-2') }}"
-            ),
-            k8s.V1EnvVar(
-                name="XCOM_DATA2", value="{{ task_instance.xcom_pull('python_pod') }}"
-            ),
+            k8s.V1EnvVar(name="XCOM_DATA1", value="{{ task_instance.xcom_pull('write-xcom-2') }}"),
+            k8s.V1EnvVar(name="XCOM_DATA2", value="{{ task_instance.xcom_pull('python_pod') }}"),
         ],
         get_logs=True,
     )

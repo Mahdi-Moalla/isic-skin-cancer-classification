@@ -64,9 +64,7 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
 
         score_08 = auc(fpr_1, tpr_1)
 
-        score = roc_auc_score(
-            val_targets_np, val_scores_np, sample_weight=val_weights_np
-        )
+        score = roc_auc_score(val_targets_np, val_scores_np, sample_weight=val_weights_np)
 
         self.val_binary_auc.append(score)
         self.val_binary_auc_tpr08.append(score_08)
@@ -86,12 +84,8 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
             step=trainer.current_epoch,
         )
 
-        pl_module.log(
-            "val_binary_auc_tpr.8", score_08, on_epoch=True, prog_bar=True, logger=True
-        )
-        pl_module.log(
-            "val_binary_auc", score, on_epoch=True, prog_bar=True, logger=True
-        )
+        pl_module.log("val_binary_auc_tpr.8", score_08, on_epoch=True, prog_bar=True, logger=True)
+        pl_module.log("val_binary_auc", score, on_epoch=True, prog_bar=True, logger=True)
         pl_module.log(
             "fold_i",
             trainer.fold_i,
@@ -168,9 +162,7 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
         )
         plt.show()
 
-    def on_validation_epoch_start(
-        self, trainer, pl_module
-    ):  #  pylint: disable=unused-argument
+    def on_validation_epoch_start(self, trainer, pl_module):  #  pylint: disable=unused-argument
         """
         on validation epoch end callback
         """

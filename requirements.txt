@@ -19,3 +19,7 @@ avro
 pillow
 mlflow==3.1.1
 albumentationsx
+deepdiff
+pylint
+pytest
+black

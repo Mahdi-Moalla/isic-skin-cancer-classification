@@ -16,9 +16,7 @@ from flask import Flask, jsonify, request
 from kafka import KafkaProducer
 from PIL import Image
 
-logging.basicConfig(
-    level=logging.INFO, format="BACKEND: %(asctime)s [%(levelname)s]: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="BACKEND: %(asctime)s [%(levelname)s]: %(message)s")
 
 kafka_server = os.getenv("kafka_server", "kafka:9092")
 
@@ -41,9 +39,7 @@ def send_data():
     """
     if 'json_record' not in request.files.keys() or 'image' not in request.files.keys():
         return (
-            jsonify(
-                {"error": "data  incomplete, please  post the json_record and image"}
-            ),
+            jsonify({"error": "data  incomplete, please  post the json_record and image"}),
             404,
         )
 
@@ -69,9 +65,7 @@ def send_data():
 
     output_buffer = io.BytesIO()
 
-    writer = DataFileWriter(output_buffer,
-                            DatumWriter(),
-                            schema)
+    writer = DataFileWriter(output_buffer, DatumWriter(), schema)
 
     writer.append(avro_record)
     writer.flush()

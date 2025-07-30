@@ -5,10 +5,13 @@ classification pytorch model
 # pylint: disable=import-error
 import sys
 
-import pytorch_lightning as pl  # #######
+# isort: off
 import torch
-from   torch import nn
+from torch import nn
 import torch.nn.functional as F
+
+# isort: on
+import pytorch_lightning as pl
 import torchvision
 
 
@@ -21,6 +24,23 @@ def dynamic_import(name):
     for comp in components[1:]:
         mod = getattr(mod, comp)
     return mod
+
+
+def get_toplast_layer(model, transfer_learning_layer):
+    """
+    find top classification  layer in a torchvision
+    classification  model
+    """
+    layer = model
+
+    for layer_id in transfer_learning_layer:  # [:-1]:
+        if isinstance(layer_id, str):
+            layer = getattr(layer, layer_id)
+        elif isinstance(layer_id, int):
+            layer = layer[layer_id]
+        else:
+            raise TypeError(f"unknown layer_id type: {type(layer_id)} of  {layer_id}")
+    return layer
 
 
 class isic_classifier(
@@ -57,18 +77,20 @@ class isic_classifier(
 
         transfer_learning_layer = self.config.transfer_learning_layer
 
-        ## finding last-1 layer
-        layer = self.model
+        # ## finding last-1 layer
+        # layer = self.model
 
-        for layer_id in transfer_learning_layer[:-1]:
-            if isinstance(layer_id, str):
-                layer = getattr(layer, layer_id)
-            elif isinstance(layer_id, int):
-                layer = layer[layer_id]
-            else:
-                raise TypeError(
-                    f"unknown layer_id type: {type(layer_id)} of  {layer_id}"
-                )
+        # for layer_id in transfer_learning_layer[:-1]:
+        #     if isinstance(layer_id, str):
+        #         layer = getattr(layer, layer_id)
+        #     elif isinstance(layer_id, int):
+        #         layer = layer[layer_id]
+        #     else:
+        #         raise TypeError(
+        #             f"unknown layer_id type: {type(layer_id)} of  {layer_id}"
+        #         )
+
+        layer = get_toplast_layer(self.model, transfer_learning_layer[:-1])
 
         ## updating last layer
 
@@ -115,6 +137,7 @@ class isic_classifier(
         else:
             raise TypeError(f"unknown layer_id type: {type(layer_id)} of  {layer_id}")
 
+    # pylint: disable=arguments-differ
     def forward(self, x, tab_feats):
         """
         model forward method
@@ -133,9 +156,7 @@ class isic_classifier(
         loss = F.nll_loss(
             logits,
             y,
-            weight=torch.tensor(
-                [1.0, self.config.pos_class_weight], device=self.device
-            ),
+            weight=torch.tensor([1.0, self.config.pos_class_weight], device=self.device),
         )
         self.log("train_loss", loss, logger=None)
         return loss
@@ -155,19 +176,19 @@ class isic_classifier(
         if stage:
             self.log(f"{stage}_loss", loss, on_epoch=True, prog_bar=True)
 
-    def validation_step(self, batch, batch_idx): # pylint: disable=unused-argument
+    def validation_step(self, batch, batch_idx):  # pylint: disable=unused-argument
         """
         validation step
         """
         self.evaluate(batch, "val")
 
-    def test_step(self, batch, batch_idx): # pylint: disable=unused-argument
+    def test_step(self, batch, batch_idx):  # pylint: disable=unused-argument
         """
         test step
         """
         self.evaluate(batch, "test")
 
-    def predict_step(self, batch, batch_idx, dataloader_idx=0): # pylint: disable=unused-argument
+    def predict_step(self, batch, batch_idx, dataloader_idx=0):  # pylint: disable=unused-argument
         """
         prediction step
         """
@@ -208,9 +229,7 @@ class isic_classifier(
         return {
             "optimizer": optimizer,
             "lr_scheduler": {
-                "scheduler": lr_scheduler_cls(
-                    optimizer, **self.config.lr_sceduler_params
-                ),
+                "scheduler": lr_scheduler_cls(optimizer, **self.config.lr_sceduler_params),
                 "monitor": "train_loss",
             },
         }

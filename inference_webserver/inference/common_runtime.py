@@ -109,8 +109,7 @@ def allocate_buffers(engine: trt.ICudaEngine, profile_idx: Optional[int] = None)
         shape_valid = np.all([s >= 0 for s in shape])
         if not shape_valid and profile_idx is None:
             raise ValueError(
-                f"Binding {binding} has dynamic shape, "
-                + "but no profile was specified."
+                f"Binding {binding} has dynamic shape, " + "but no profile was specified."
             )
         size = trt.volume(shape)
         trt_type = engine.get_tensor_dtype(binding)
@@ -169,9 +168,7 @@ def _do_inference_base(inputs, outputs, stream, execute_async_func):
     # Transfer input data to the GPU.
     kind = cudart.cudaMemcpyKind.cudaMemcpyHostToDevice
     [
-        cuda_call(
-            cudart.cudaMemcpyAsync(inp.device, inp.host, inp.nbytes, kind, stream)
-        )
+        cuda_call(cudart.cudaMemcpyAsync(inp.device, inp.host, inp.nbytes, kind, stream))
         for inp in inputs
     ]
     # Run inference.
@@ -179,9 +176,7 @@ def _do_inference_base(inputs, outputs, stream, execute_async_func):
     # Transfer predictions back from the GPU.
     kind = cudart.cudaMemcpyKind.cudaMemcpyDeviceToHost
     [
-        cuda_call(
-            cudart.cudaMemcpyAsync(out.host, out.device, out.nbytes, kind, stream)
-        )
+        cuda_call(cudart.cudaMemcpyAsync(out.host, out.device, out.nbytes, kind, stream))
         for out in outputs
     ]
     # Synchronize the stream

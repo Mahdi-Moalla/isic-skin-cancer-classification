@@ -36,9 +36,7 @@ def init_config():
 
     config.db.postgres_db_name = os.getenv("postgres_db_name", "isic_db")
     config.db.postgres_db_user = os.getenv("postgres_db_user", "isic_db_user")
-    config.db.postgres_db_password = os.getenv(
-        "postgres_db_password", "isic_db_password"
-    )
+    config.db.postgres_db_password = os.getenv("postgres_db_password", "isic_db_password")
 
     psycopg_conn_str = f"""
     host={config.db.postgres_server}
@@ -58,9 +56,7 @@ logging.info(str(inference_config))
 
 app = Flask(__name__)
 
-db_isic_inference_interface = db_isic_inference(
-    db_connector(inference_config.db.psycopg_conn_str)
-)
+db_isic_inference_interface = db_isic_inference(db_connector(inference_config.db.psycopg_conn_str))
 
 
 @app.route('/v1/inference/query', methods=['GET'])
