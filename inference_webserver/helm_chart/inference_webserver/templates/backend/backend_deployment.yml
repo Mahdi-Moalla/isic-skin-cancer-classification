@@ -26,7 +26,28 @@ spec:
           - -c
           - >-
               cd /home &&
-              git clone {{ .Values.code_repo }} repo_code
+              git clone $code_repo repo_code &&
+              cd repo_code &&
+              git checkout $repo_commit_id
+        env:
+        
+          - name: code_repo
+            valueFrom:
+                configMapKeyRef:
+                  name: system-cfgmap
+                  key: code_repo
+          - name: repo_commit_id
+            valueFrom:
+                configMapKeyRef:
+                  name: system-cfgmap
+                  key: repo_commit_id
+        
+
+        # args:
+        #   - -c
+        #   - >-
+        #       cd /home &&
+        #       git clone {{ .Values.code_repo }} repo_code
         
         volumeMounts:
         - mountPath: "/home"

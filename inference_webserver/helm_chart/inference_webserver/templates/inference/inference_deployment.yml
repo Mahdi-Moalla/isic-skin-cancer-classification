@@ -26,52 +26,65 @@ spec:
           - -c
           - >-
               cd /home &&
-              git clone {{ .Values.code_repo }} repo_code &&
-              bash repo_code/inference_webserver/inference/run_inference.sh
+              git clone $repo_code repo_code &&
+              cd  repo_code &&
+              git  checkout $repo_commit_id &&
+              bash inference_webserver/inference/run_inference.sh
         
         env:
-        
-        - name: kafka_server
-          value: {{ .Values.kafka.server }}
-        - name: kafka_topic_name
-          value: {{ .Values.kafka.topic_name }}
 
-        - name: mlflow_server_url
-          value: {{ .Values.mlflow.server }}
         
-        - name: mlflow_experiment_name
-          valueFrom:
-            configMapKeyRef:
-              name: system-cfgmap
-              key: mlflow_experiment_name
-        
-        - name: registry_model_name
-          valueFrom:
-            configMapKeyRef:
-              name: system-cfgmap
-              key: registry_model_name
-        - name: registry_model_version
-          value: "{{ .Values.inference.model.registry.version }}"
-        - name: py_artifacts_run_id
-          value: "{{ .Values.inference.py_artifacts_run_id }}"
-        
-        
-        - name: postgres_server
-          value: {{ .Values.postgres_db.host }}
-        - name: postgres_port
-          value: "{{ .Values.postgres_db.port }}"
-        - name: postgres_db_name
-          value: {{ .Values.postgres_db.db_name }}
-        - name: postgres_db_user
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.postgres_db.existing_db_secret.name }}
-              key: {{ .Values.postgres_db.existing_db_secret.usernameKey }}
-        - name: postgres_db_password
-          valueFrom:
-            secretKeyRef:
-              name: {{ .Values.postgres_db.existing_db_secret.name }}
-              key: {{ .Values.postgres_db.existing_db_secret.passwordKey }}
+          - name: kafka_server
+            value: {{ .Values.kafka.server }}
+          - name: kafka_topic_name
+            value: {{ .Values.kafka.topic_name }}
+
+          - name: mlflow_server_url
+            value: {{ .Values.mlflow.server }}
+          
+          - name: mlflow_experiment_name
+            valueFrom:
+              configMapKeyRef:
+                name: system-cfgmap
+                key: mlflow_experiment_name
+          - name: code_repo
+            valueFrom:
+                configMapKeyRef:
+                  name: system-cfgmap
+                  key: code_repo
+          - name: repo_commit_id
+            valueFrom:
+                configMapKeyRef:
+                  name: system-cfgmap
+                  key: repo_commit_id
+          
+          - name: registry_model_name
+            valueFrom:
+              configMapKeyRef:
+                name: system-cfgmap
+                key: registry_model_name
+          - name: registry_model_version
+            value: "{{ .Values.inference.model.registry.version }}"
+          - name: py_artifacts_run_id
+            value: "{{ .Values.inference.py_artifacts_run_id }}"
+          
+          
+          - name: postgres_server
+            value: {{ .Values.postgres_db.host }}
+          - name: postgres_port
+            value: "{{ .Values.postgres_db.port }}"
+          - name: postgres_db_name
+            value: {{ .Values.postgres_db.db_name }}
+          - name: postgres_db_user
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.postgres_db.existing_db_secret.name }}
+                key: {{ .Values.postgres_db.existing_db_secret.usernameKey }}
+          - name: postgres_db_password
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.postgres_db.existing_db_secret.name }}
+                key: {{ .Values.postgres_db.existing_db_secret.passwordKey }}
 
 
         volumeMounts:

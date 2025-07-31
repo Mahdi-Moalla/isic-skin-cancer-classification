@@ -13,8 +13,13 @@ spec:
         - name: code_repo
           valueFrom:
               configMapKeyRef:
-                name: training-pipeline-cfgmap
+                name: system-cfgmap
                 key: code_repo
+        - name: repo_commit_id
+          valueFrom:
+              configMapKeyRef:
+                name: system-cfgmap
+                key: repo_commit_id
       
         - name: preprocessed_dataset_folder
           valueFrom:
@@ -43,9 +48,11 @@ spec:
         - -c
         - >-
             nvidia-smi &&
-            git clone $code_repo repo_code &&
             mkdir -p /workspace/data/work &&
-            cd repo_code/training_pipeline/trainer/ &&
+            git clone $code_repo repo_code &&
+            cd repo_code &&
+            git checkout $repo_commit_id &&
+            cd training_pipeline/trainer/ &&
             python train.py /workspace/data/$(preprocessed_dataset_folder) /workspace/data/work
 
       volumeMounts:
