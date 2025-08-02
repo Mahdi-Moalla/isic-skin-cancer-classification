@@ -192,7 +192,7 @@ For that reason, I decided to split the original training dataset to new trainin
 
 The new training set will be used for training and the new test set will be used to simulate monitoring.
 
-Please download the training files from [kaggle](https://www.kaggle.com/competitions/isic-2024-challenge/data). You need just the `train-metadata.csv` and `train-image.hdf5` files.
+Please download the original training files from [kaggle](https://www.kaggle.com/competitions/isic-2024-challenge/data). You need just the `train-metadata.csv` and `train-image.hdf5` files. You can also download them from this [google drive  link](https://drive.google.com/file/d/1insFKb58cCCabzPkLzSQZafSjZvN7Smd/view?usp=sharing).
 
 After putting them in the `utils/project_data_prepare` path, run the following commands:
 
@@ -206,7 +206,7 @@ cd ../..
 
 ### 6. Install k9s (optional)
 
-This is a very handy tool to inspect a kubernetes cluster.
+This is a very handy terminal-based utility to inspect a kubernetes cluster.
 You can find installation instructions on this [link](https://k9scli.io/topics/install/)
 
 ### 7. Init the MLOps  system
@@ -215,26 +215,39 @@ You can find installation instructions on this [link](https://k9scli.io/topics/i
 make build_images=true init-all
 ```
 
-This will install the different services on kubernetes cluster:
-- Airflow:
-  - available on localhost:8888
+This will install the various services on kubernetes cluster:  
+
+- `Airflow`:
+  - available on `localhost:8888`
   - Credentials:
-    - name: admin
-    - password: admin
-- MLFlow
-  - available on localhost:5000 
-- KAFKA
-- Gloo gateway
-- Adminer
+    - name: `admin`
+    - password: `admin`
+- `MLFlow`
+  - available on `localhost:5000` 
+- `KAFKA`
+- `Gloo` gateway
+- `Adminer`
   - used to inspect the central postgresql database
-  - Available on localhost:8880
-  - database server name: airflow-service-postgresql
-  - user: postgres
-  - password: postgres 
-- kafka-ui:
-  - used to inspect kafka service
-  - Available on localhost:8088
-  - kafka broker url: kafka-service-broker:9092
+  - Available on `localhost:8880`
+  - database server address: `airflow-service-postgresql`
+  - user: `postgres`
+  - password: `postgres` 
+- `kafka-ui`:
+  - used to inspect the kafka service
+  - Available on `localhost:8088`
+  - kafka broker server  name and port: `kafka-service-broker:9092`
+
+In addition, this command will perform a couple of additional  tasks:
+  - create a simple python `http.server` that is used to download data into the kubernetes cluster.
+  - Initialize a couple of databases for `MLFlow`, `inference webservice` and the `monitoring` components. All  those databases can be inspected through adminer.
+
+
+### 8. Train Model
+
+You can now login to Airflow. There will be a couple of dags.
+You can start the dag and let it run to  completion.
+
+
 
 
 

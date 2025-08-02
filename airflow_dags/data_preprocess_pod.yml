@@ -66,6 +66,8 @@ spec:
           name: training-pipeline-volume
         - mountPath: "/mlflow/artifacts"
           name: mlflow-artifacts-volume
+        - name: config-volume
+          mountPath: /etc/config
   volumes: ###
     - name: training-pipeline-volume ###
       persistentVolumeClaim: ###
@@ -77,3 +79,10 @@ spec:
   
     - name: homedir
       emptyDir: {}
+
+    - name: config-volume
+      configMap:
+        name: training-pipeline-json-defs
+        items:
+        - key: preprocess_transform.json
+          path: preprocess_transform.json

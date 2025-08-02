@@ -1,0 +1,22 @@
+{
+   "import_prefix": "albumentations",
+   "pipeline_composer": "Compose",
+   "transforms": [
+      {
+         "transform": "Resize",
+         "args": {
+            "height": 256,
+            "width": 256,
+            "interpolation": {"__import__":{"module":"cv2","name":"INTER_CUBIC"}},
+            "p": 1.0
+         }
+      },
+      {
+         "transform": "CenterCrop",
+         "args": {
+            "height": 224,
+            "width": 224
+         }
+      }
+   ]
+}

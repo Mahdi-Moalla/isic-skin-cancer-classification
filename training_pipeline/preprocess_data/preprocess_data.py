@@ -5,6 +5,7 @@ data preprocessing task
 import io
 import json
 import os
+import sys
 import os.path as osp
 import shutil
 from pathlib import Path
@@ -18,26 +19,36 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-preprocess_transform = A.Compose(
-    [
-        A.Resize(
-            height=256,
-            width=256,
-            interpolation=cv2.INTER_CUBIC,  # pylint: disable=no-member
-            p=1.0,
-        ),
-        A.CenterCrop(height=224, width=224),
-    ]
-)
+
+sys.path.append('../../')
+from utils.python_utils.data_pipeline_util import create_pipeline
+
+# preprocess_transform = A.Compose(
+#     [
+#         A.Resize(
+#             height=256,
+#             width=256,
+#             interpolation=cv2.INTER_CUBIC,  # pylint: disable=no-member
+#             p=1.0,
+#         ),
+#         A.CenterCrop(height=224, width=224),
+#     ]
+# )
+
+
+
+
 
 
 def preprocess_data(
     input_data_path='../../project_data_prepare/split_dataset/',
+    preprocess_transform_json='./preprocess_transform.json',
     preprocessed_data_path='./preprocessed_data/',
 ):
     """
     main preprocessing function
     """
+    preprocess_transform = create_pipeline(preprocess_transform_json)
     if osp.exists(preprocessed_data_path):
         if osp.isdir(preprocessed_data_path):
             assert len(os.listdir(preprocessed_data_path)) == 0, 'output path is not empty'

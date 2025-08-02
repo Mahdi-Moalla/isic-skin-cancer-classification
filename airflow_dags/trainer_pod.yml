@@ -72,3 +72,13 @@ spec:
     - name: shared-mem
       medium: Memory
       sizeLimit: 256Mi
+    - name: config-volume
+      configMap:
+        name: training-pipeline-json-defs
+        items:
+        - key: config.json
+          path: config.json
+        - key: train_transform.json
+          path: train_transform.json
+        - key: val_transform.json
+          path: val_transform.json

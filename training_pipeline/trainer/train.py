@@ -9,6 +9,7 @@ import os
 import os.path as osp
 
 # isort: on
+import sys
 import json
 import shutil
 import warnings
@@ -42,6 +43,9 @@ from pytorch_lightning.callbacks import (
 )
 
 # isort: on
+
+sys.path.append('../../')
+from utils.python_utils.data_pipeline_util import create_pipeline
 
 
 def log_train_data(metadata_file, image_file, isic_ids):  # pylint: disable=too-many-locals
@@ -174,11 +178,14 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
     """
     training code per fold
     """
+
+    fold_i_str=f"fold_{fold_i}_" if fold_i is not None else ""
+
     model = isic_classifier(config)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=config.checkpoints_dir,
-        filename=f'best_{fold_i}',
+        filename=f'{fold_i_str}best',
         save_top_k=1,
         monitor="val_binary_auc",
     )
@@ -200,9 +207,10 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
-    best_model_path = osp.join(config.checkpoints_dir, f'best_{fold_i}.ckpt')
+    best_model_path = osp.join(config.checkpoints_dir,
+                               f'{fold_i_str}best.ckpt')
 
-    mlflow.log_artifact(best_model_path, artifact_path="best_pretrain")
+    # mlflow.log_artifact(best_model_path, artifact_path="best_pretrain")
 
     print('%%%%%%%%%%% finetuning.....')
 
@@ -212,7 +220,7 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=config.checkpoints_dir,
-        filename=f'best_finetune_{fold_i}',
+        filename=f'{fold_i_str}best_finetune',
         save_top_k=1,
         monitor="val_binary_auc",
     )
@@ -234,13 +242,16 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
-    best_model_path = osp.join(config.checkpoints_dir, f'best_finetune_{fold_i}.ckpt')
-    mlflow.log_artifact(best_model_path, artifact_path="best_finetune")
+    best_model_path = osp.join(config.checkpoints_dir,
+                               f'{fold_i_str}best_finetune.ckpt')
+    # mlflow.log_artifact(best_model_path,
+    #                     artifact_path=f"{fold_i_s}best_finetune")
 
     final_model = isic_classifier.load_from_checkpoint(  # pylint: disable=no-value-for-parameter
         best_model_path, config=config, train_mode='finetuning'
     )
-    mlflow.pytorch.log_model(final_model, name="fold_best")
+    mlflow.pytorch.log_model(final_model,
+                             name=f"{fold_i_str}best_finetune_model")
 
 
 def infer_test_data(config, val_transforms):
@@ -311,9 +322,12 @@ def main(  # pylint: disable=too-many-locals
         # from transforms import train_transforms, val_transforms
 
         config = __import__("config").config
-        transforms = __import__("transforms")
-        train_transforms = transforms.train_transforms
-        val_transforms = transforms.val_transforms
+        #transforms = __import__("transforms")
+        #train_transforms = transforms.train_transforms
+        #val_transforms = transforms.val_transforms
+
+        train_transforms = create_pipeline('train_transform.json')
+        val_transforms = create_pipeline('val_transform.json')
 
         mlflow.log_dict(config.to_dict(), "trainer_config.json")
 
@@ -367,6 +381,23 @@ def main(  # pylint: disable=too-many-locals
                 )
                 print('######### training #############')
                 fold_train(config, i, train_dataloader, val_dataloader, logger)
+
+        with mlflow.start_run(run_name="final",
+                              nested=True,
+                              log_system_metrics=True):
+            train_dataloader, val_dataloader = prepare_data(
+                    config,
+                    None,
+                    None,
+                    train_transforms,
+                    val_transforms
+                )
+            print('######### training #############')
+            fold_train(config,
+                       None,
+                       train_dataloader,
+                       val_dataloader,
+                       logger)
 
         logs = pd.read_csv(osp.join(config.log_dir, 'lightning_logs/version_0/metrics.csv'))
 

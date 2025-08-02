@@ -26,6 +26,10 @@ from avro.io import DatumReader
 from kafka import KafkaConsumer
 from PIL import Image
 
+sys.path.append('../../')
+from utils.python_utils.data_pipeline_util import create_pipeline
+
+
 logging.basicConfig(
     level=logging.INFO, format="INFERENCE: %(asctime)s [%(levelname)s]: %(message)s"
 )

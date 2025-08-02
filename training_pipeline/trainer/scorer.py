@@ -41,6 +41,8 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
         if not self.sanity_check:
             self.sanity_check = True
             return
+        
+        fold_i_str=f"fold_{trainer.fold_i}_" if trainer.fold_i is not None else ""
 
         val_scores_np = np.array(pl_module.validation_scores)
         val_targets_np = np.array(pl_module.validation_targets)
@@ -86,13 +88,14 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
 
         pl_module.log("val_binary_auc_tpr.8", score_08, on_epoch=True, prog_bar=True, logger=True)
         pl_module.log("val_binary_auc", score, on_epoch=True, prog_bar=True, logger=True)
-        pl_module.log(
-            "fold_i",
-            trainer.fold_i,
-            on_epoch=True,
-            # prog_bar =True,
-            logger=True,
-        )
+        if  trainer.fold_i is not None:
+            pl_module.log(
+                "fold_i",
+                trainer.fold_i,
+                on_epoch=True,
+                # prog_bar =True,
+                logger=True,
+            )
         pl_module.log(
             "train_mode",
             self.train_mode_lut[pl_module.train_mode],
@@ -120,7 +123,7 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
         # plt.show()
         mlflow.log_figure(
             fig,
-            artifact_file=f'fold_{trainer.fold_i}_mode_{pl_module.train_mode}'
+            artifact_file=f'{fold_i_str}mode_{pl_module.train_mode}'
             + f'_epoch_{trainer.current_epoch}.png',
         )
 
@@ -130,13 +133,16 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
         # plt.show()
         mlflow.log_figure(
             fig,
-            artifact_file=f'fold_{trainer.fold_i}_mode_{pl_module.train_mode}_auc.png',
+            artifact_file=f'{fold_i_str}mode_{pl_module.train_mode}_auc.png',
         )
 
     def on_fit_end(self, trainer, pl_module):
         """
         on fit end callback
         """
+
+        fold_i_str=f"fold_{trainer.fold_i}_" if trainer.fold_i is not None else ""
+
         plt.figure()
         plt.plot(self.val_binary_auc, color='b', marker="*")
         plt.title('aucs')
@@ -144,7 +150,7 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
             osp.join(
                 self.config.log_dir,
                 'aucs',
-                f'auc_fold_{trainer.fold_i}_mode_{self.train_mode_lut[pl_module.train_mode]}.png',
+                f'auc_{fold_i_str}mode_{self.train_mode_lut[pl_module.train_mode]}.png',
             )
         )
         plt.show()
@@ -156,7 +162,7 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
             osp.join(
                 self.config.log_dir,
                 'aucs',
-                f'aucs08_fold_{trainer.fold_i}_mode_'
+                f'aucs08_{fold_i_str}mode_'
                 + f'{self.train_mode_lut[pl_module.train_mode]}.png',
             )
         )

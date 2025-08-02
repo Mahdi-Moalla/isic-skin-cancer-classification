@@ -1,6 +1,7 @@
-docker run -it --runtime=nvidia --gpus all\
+docker run -it --rm --runtime=nvidia --gpus all\
      --ipc=host --ulimit memlock=-1\
      --ulimit stack=67108864\
-     -v ../preprocess_data/preprocessed_data/:/workspace/data\
-     -v .:/workspace/code\
-     nvcr.io/nvidia/pytorch:25.05-py3 bash
+     nvcr_pytorch_tensorrt_mod
+     #-v ../preprocess_data/preprocessed_data/:/workspace/data\
+     #-v .:/workspace/code\
+     #nvcr.io/nvidia/pytorch:25.05-py3 bash

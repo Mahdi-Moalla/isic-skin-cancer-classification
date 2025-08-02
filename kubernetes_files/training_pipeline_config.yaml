@@ -1,0 +1,180 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: training-pipeline-json-defs
+  namespace: isic-skin-cancer-classification
+data:
+  # The key for your JSON data
+  config.json: |
+    {
+        "epochs": 1,
+        "tab_features": [
+            "clin_size_long_diam_mm",
+            "tbp_lv_A",
+            "tbp_lv_Aext",
+            "tbp_lv_B",
+            "tbp_lv_Bext",
+            "tbp_lv_C",
+            "tbp_lv_Cext",
+            "tbp_lv_H",
+            "tbp_lv_Hext",
+            "tbp_lv_L",
+            "tbp_lv_Lext",
+            "tbp_lv_areaMM2",
+            "tbp_lv_area_perim_ratio",
+            "tbp_lv_color_std_mean",
+            "tbp_lv_deltaA",
+            "tbp_lv_deltaB",
+            "tbp_lv_deltaL",
+            "tbp_lv_deltaLBnorm",
+            "tbp_lv_eccentricity",
+            "tbp_lv_minorAxisMM",
+            "tbp_lv_nevi_confidence",
+            "tbp_lv_norm_border",
+            "tbp_lv_norm_color",
+            "tbp_lv_perimeterMM",
+            "tbp_lv_radial_color_std_max",
+            "tbp_lv_stdL",
+            "tbp_lv_stdLExt",
+            "tbp_lv_symm_2axis",
+            "tbp_lv_symm_2axis_angle",
+            "tbp_lv_x",
+            "tbp_lv_y",
+            "tbp_lv_z"
+        ],
+        "model": "efficientnet_b0",
+        "pretrained_weights_type": "torchvision_id",
+        "pretrained_weights": "EfficientNet_B0_Weights.IMAGENET1K_V1",
+        "transfer_learning_layer": [
+            "classifier",
+            1
+        ],
+        "transfer_learning_layer_spec": [
+            64,
+            2
+        ],
+        "train_batch_size": 32,
+        "val_batch_size": 64,
+        "train_sample_count": 16384,
+        "train_pos_ratio": 0.5,
+        "learning_rate": 0.001,
+        "finetune_learning_rate": 0.0001,
+        "optimizer": "torch.optim.Adam",
+        "optimizer_params": {},
+        "lr_sceduler": "torch.optim.lr_scheduler.ReduceLROnPlateau",
+        "lr_sceduler_params": {
+            "mode": "min",
+            "factor": 0.1,
+            "patience": 5
+        },
+        "n_fold": 2,
+        "pos_class_weight": 2.0,
+        "roc_pos_class_weight": 1000
+    }
+  train_transform.json: |
+    {
+        "import_prefix": "torchvision.transforms.v2",
+        "pipeline_composer": "Compose",
+        "transforms": [
+            {
+                "transform": "RandomHorizontalFlip",
+                "args": {
+                    "p": 0.5
+                }
+            },
+            {
+                "transform": "RandomVerticalFlip",
+                "args": {
+                    "p": 0.5
+                }
+            },
+            {
+                "transform": "AutoAugment",
+                "args": {
+                    "policy":{"__import__":{"module":"torchvision.transforms.v2",
+                                            "name":"AutoAugmentPolicy",
+                                            "attrs":"IMAGENET"}}
+                }
+            },
+            {
+                "transform": "AugMix",
+                "args": {}
+            },
+            {
+                "transform": "ToDtype",
+                "args": {
+                    "dtype": {"__import__":{"module":"torch","name":"float32"}},
+                    "scale": true
+                }
+            },
+            {
+                "transform": "Normalize",
+                "args": {
+                    "mean": [
+                        0.485,
+                        0.456,
+                        0.406
+                    ],
+                    "std": [
+                        0.229,
+                        0.224,
+                        0.225
+                    ]
+                }
+            }
+        ]
+    }
+  val_transform.json: |
+    {
+        "import_prefix": "torchvision.transforms.v2",
+        "pipeline_composer": "Compose",
+        "transforms": [
+            {
+                "transform": "ToDtype",
+                "args": {
+                    "dtype": {"__import__":{"module":"torch","name":"float32"}},
+                    "scale": true
+                }
+            },
+            {
+                "transform": "Normalize",
+                "args": {
+                    "mean": [
+                        0.485,
+                        0.456,
+                        0.406
+                    ],
+                    "std": [
+                        0.229,
+                        0.224,
+                        0.225
+                    ]
+                }
+            }
+        ]
+    }
+  preprocess_transform.json: |
+    {
+      "import_prefix": "albumentations",
+      "pipeline_composer": "Compose",
+      "transforms": [
+          {
+            "transform": "Resize",
+            "args": {
+                "height": 256,
+                "width": 256,
+                "interpolation": {"__import__":{"module":"cv2","name":"INTER_CUBIC"}},
+                "p": 1.0
+            }
+          },
+          {
+            "transform": "CenterCrop",
+            "args": {
+                "height": 224,
+                "width": 224
+            }
+          }
+      ]
+    }
+
+
