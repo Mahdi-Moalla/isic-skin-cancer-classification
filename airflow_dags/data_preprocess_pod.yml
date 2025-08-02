@@ -8,9 +8,8 @@ spec:
   restartPolicy: OnFailure
   initContainers:
     - name: repo-clone
-      image: ubuntu_toolset:latest
-      imagePullPolicy: Never
-      command: ["bash"]
+      image: alpine/git:v2.49.1
+      command: ["sh"]
       args:
         - -c
         - >-
@@ -43,6 +42,7 @@ spec:
       args:
         - -c
         - >-
+            cp /etc/isic_config/*  /home/repo_code/training_pipeline/preprocess_data/ &&
             cd /home/repo_code/training_pipeline/preprocess_data/ &&
             python preprocess_data.py /workspace/data/$(dataset_folder) /workspace/data/$(preprocessed_dataset_folder)
       env:
@@ -51,12 +51,17 @@ spec:
           valueFrom:
               configMapKeyRef:
                 name: training-pipeline-cfgmap
-                key: dataset_folder      
+                key: dataset_folder
         - name: preprocessed_dataset_folder
           valueFrom:
               configMapKeyRef:
                 name: training-pipeline-cfgmap
                 key: preprocessed_dataset_folder
+        - name: monitoring_img_hist_bins_size
+          valueFrom:
+              configMapKeyRef:
+                name: system-cfgmap
+                key: monitoring_img_hist_bins_size
       
 
       volumeMounts:
@@ -66,6 +71,8 @@ spec:
           name: training-pipeline-volume
         - mountPath: "/mlflow/artifacts"
           name: mlflow-artifacts-volume
+        - mountPath: /etc/isic_config
+          name: training-pipeline-json-defs-volume
   volumes: ###
     - name: training-pipeline-volume ###
       persistentVolumeClaim: ###
@@ -77,3 +84,10 @@ spec:
   
     - name: homedir
       emptyDir: {}
+
+    - name: training-pipeline-json-defs-volume
+      configMap:
+        name: training-pipeline-json-defs
+        items:
+        - key: preprocess_transform.json
+          path: preprocess_transform.json

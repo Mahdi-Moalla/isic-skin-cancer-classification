@@ -84,12 +84,12 @@ endif
 	microk8s images import < monitoring_docker_image.tar
 	rm monitoring_docker_image.tar
 
-ifeq ($(build_images), true)
-	bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
-endif
-	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image}
-	microk8s images import < ubuntu_toolset_docker_image.tar
-	rm ubuntu_toolset_docker_image.tar
+# ifeq ($(build_images), true)
+# 	bash utils/ubuntu_toolset/build_image.sh ${ubuntu_toolset_docker_image}
+# endif
+# 	docker save -o ubuntu_toolset_docker_image.tar  ${ubuntu_toolset_docker_image}
+# 	microk8s images import < ubuntu_toolset_docker_image.tar
+# 	rm ubuntu_toolset_docker_image.tar
 
 ifeq ($(build_images), true)
 	bash inference_webserver/webserver_docker_img/build_webserver_dockerfile.sh ${webserver_docker_image}
@@ -122,6 +122,7 @@ endif
 	docker pull docker.io/adminer:4.8.1-standalone
 	docker pull quay.io/solo-io/gloo:1.19.3
 	docker pull docker.io/grafana/grafana:12.0.2
+	docker pull alpine/git:v2.49.1
 
 	docker save apache/airflow:2.10.5 > airflow.tar
 	docker save docker.io/bitnami/postgresql:16.1.0-debian-11-r15 > postgresql.tar
@@ -131,6 +132,7 @@ endif
 	docker save docker.io/adminer:4.8.1-standalone > adminer.tar
 	docker save quay.io/solo-io/gloo:1.19.3 > gloo.tar
 	docker save docker.io/grafana/grafana:12.0.2 > grafana.tar
+	docker  save alpine/git:v2.49.1 > git.tar
 
 	microk8s images import < airflow.tar
 	microk8s images import < postgresql.tar
@@ -140,8 +142,10 @@ endif
 	microk8s images import < adminer.tar
 	microk8s images import < gloo.tar
 	microk8s images import < grafana.tar
+	microk8s images import < git.tar
 
-	rm airflow.tar postgresql.tar mlflow.tar kafka.tar kafka_ui.tar adminer.tar gloo.tar grafana.tar
+	rm airflow.tar postgresql.tar mlflow.tar kafka.tar kafka_ui.tar\
+	 adminer.tar gloo.tar grafana.tar git.tar
 
 init-airflow:
 	helm repo add apache-airflow https://airflow.apache.org
@@ -287,6 +291,7 @@ expose-all: expose-airflow expose-mlflow expose-adminer expose-kafka-ui expose-p
 
 
 init-all: init-cluster init-namespace init-images init-apps
+	kubectl apply -f kubernetes_files/training_pipeline_config.yaml
 	echo "system ready"
 
 code-formatter:

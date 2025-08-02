@@ -9,6 +9,7 @@ import os
 import os.path as osp
 
 # isort: on
+import sys
 import json
 import shutil
 import warnings
@@ -18,7 +19,8 @@ os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 warnings.filterwarnings("ignore")
 
 import fire
-import h5py
+#import h5py
+from addict import  Dict
 import mlflow
 import numpy as np
 import pandas as pd
@@ -27,11 +29,11 @@ import pandas as pd
 from addict import Dict
 from isic_datset import isic_skin_cancer_datset, isic_train_sampler
 from isic_model import isic_classifier
-from PIL import Image, ImageStat
+#from PIL import Image, ImageStat
 from scorer import binary_auroc_scorer
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader
-from tqdm import tqdm
+#from tqdm import tqdm
 
 # isort: off
 import pytorch_lightning as pl
@@ -43,95 +45,98 @@ from pytorch_lightning.callbacks import (
 
 # isort: on
 
+sys.path.append('../../')
+from utils.python_utils.data_pipeline_util import create_pipeline
 
-def log_train_data(metadata_file, image_file, isic_ids):  # pylint: disable=too-many-locals
-    """
-    log training data to be used for comparison
-    in the monitoring component
-    """
-    print('####### in  log_train_data ##########')
-    hist_bins = int(os.getenv("monitoring_img_hist_bins", "50"))
 
-    bins = np.arange(0, 256, hist_bins)
-    bins[-1] = 255
+# def log_train_data(metadata_file, image_file, isic_ids):  # pylint: disable=too-many-locals
+#     """
+#     log training data to be used for comparison
+#     in the monitoring component
+#     """
+#     print('####### in  log_train_data ##########')
+#     hist_bins = int(os.getenv("monitoring_img_hist_bins", "50"))
 
-    bins_labels = [str(x / 2) for x in (bins[:-1] + bins[1:]).tolist()]
+#     bins = np.arange(0, 256, hist_bins)
+#     bins[-1] = 255
 
-    metadata = pd.read_csv(metadata_file, low_memory=False)
-    isic_id_lut = {idx: k for k, idx in enumerate(metadata['isic_id'])}
+#     bins_labels = [str(x / 2) for x in (bins[:-1] + bins[1:]).tolist()]
 
-    data = []
+#     metadata = pd.read_csv(metadata_file, low_memory=False)
+#     isic_id_lut = {idx: k for k, idx in enumerate(metadata['isic_id'])}
 
-    hists = Dict({})
-    for color in ['r', 'g', 'b']:
-        for bin_label in bins_labels:
-            hists[color][bin_label]['sum'] = 0.0
-            hists[color][bin_label]['count'] = 0
-    with h5py.File(image_file, 'r') as f_img:
-        for isic_id in tqdm(isic_ids):
-            # print(isic_id)
-            record = Dict(metadata.iloc[isic_id_lut[isic_id]].to_dict())
+#     data = []
 
-            assert isic_id == record.isic_id
+#     hists = Dict({})
+#     for color in ['r', 'g', 'b']:
+#         for bin_label in bins_labels:
+#             hists[color][bin_label]['sum'] = 0.0
+#             hists[color][bin_label]['count'] = 0
+#     with h5py.File(image_file, 'r') as f_img:
+#         for isic_id in tqdm(isic_ids):
+#             # print(isic_id)
+#             record = Dict(metadata.iloc[isic_id_lut[isic_id]].to_dict())
 
-            img_np = f_img[isic_id][()].transpose(1, 2, 0)
-            img = Image.fromarray(img_np)
+#             assert isic_id == record.isic_id
 
-            img_np = np.array(img)
+#             img_np = f_img[isic_id][()].transpose(1, 2, 0)
+#             img = Image.fromarray(img_np)
 
-            band_count = img_np.size // 3
+#             img_np = np.array(img)
 
-            stats = ImageStat.Stat(img)
+#             band_count = img_np.size // 3
 
-            for j, color in enumerate(['r', 'g', 'b']):
-                record[f"img_{color}_mean"] = stats.mean[j]
-                record[f"img_{color}_std"] = stats.stddev[j]
+#             stats = ImageStat.Stat(img)
 
-                hist = np.histogram(img_np[..., j], bins)[0] / band_count
-                for k, v in enumerate(hist.tolist()):
-                    # record[f"img_{color}_hist_{bins[k]}_{bins[k+1]}"]=hist[k].item()
-                    hists[color][bins_labels[k]].sum += v
-                    hists[color][bins_labels[k]].count += 1
+#             for j, color in enumerate(['r', 'g', 'b']):
+#                 record[f"img_{color}_mean"] = stats.mean[j]
+#                 record[f"img_{color}_std"] = stats.stddev[j]
 
-            data.append(record.to_dict())
+#                 hist = np.histogram(img_np[..., j], bins)[0] / band_count
+#                 for k, v in enumerate(hist.tolist()):
+#                     # record[f"img_{color}_hist_{bins[k]}_{bins[k+1]}"]=hist[k].item()
+#                     hists[color][bins_labels[k]].sum += v
+#                     hists[color][bins_labels[k]].count += 1
 
-    data_df = pd.DataFrame(data)
-    data_df.to_parquet('monitoring_reference_data.parquet', engine='pyarrow')
+#             data.append(record.to_dict())
 
-    mlflow.log_artifact('monitoring_reference_data.parquet', 'monitoring_reference_data')
+#     data_df = pd.DataFrame(data)
+#     data_df.to_parquet('monitoring_reference_data.parquet', engine='pyarrow')
 
-    os.remove('monitoring_reference_data.parquet')
+#     mlflow.log_artifact('monitoring_reference_data.parquet', 'monitoring_reference_data')
 
-    cumul_hist = []
-    for color in ['r', 'g', 'b']:
-        for bin_label in bins_labels:
-            cumul_hist.append(
-                {
-                    "color": color,
-                    "bin_label": bin_label,
-                    "value": hists[color][bin_label].sum / hists[color][bin_label].count,
-                }
-            )
+#     os.remove('monitoring_reference_data.parquet')
 
-    cumul_hist_df = pd.DataFrame(cumul_hist)
-    cumul_hist_df.to_parquet('monitoring_reference_cumul_hist.parquet', engine='pyarrow')
+#     cumul_hist = []
+#     for color in ['r', 'g', 'b']:
+#         for bin_label in bins_labels:
+#             cumul_hist.append(
+#                 {
+#                     "color": color,
+#                     "bin_label": bin_label,
+#                     "value": hists[color][bin_label].sum / hists[color][bin_label].count,
+#                 }
+#             )
 
-    mlflow.log_artifact(
-        'monitoring_reference_cumul_hist.parquet', 'monitoring_reference_cumul_hist'
-    )
+#     cumul_hist_df = pd.DataFrame(cumul_hist)
+#     cumul_hist_df.to_parquet('monitoring_reference_cumul_hist.parquet', engine='pyarrow')
 
-    os.remove('monitoring_reference_cumul_hist.parquet')
+#     mlflow.log_artifact(
+#         'monitoring_reference_cumul_hist.parquet', 'monitoring_reference_cumul_hist'
+#     )
+
+#     os.remove('monitoring_reference_cumul_hist.parquet')
 
 
 def prepare_data(config, x_train, x_val, train_transforms, val_transforms):
     """
     prepare data  perfold
     """
-    log_train_data(
-        osp.join(config.data_dir, 'train-metadata.csv'),
-        osp.join(config.data_dir, 'train-image.hdf5'),
-        isic_ids=x_train.tolist(),
-    )
+    # log_train_data(
+    #     osp.join(config.data_dir, 'train-metadata.csv'),
+    #     osp.join(config.data_dir, 'train-image.hdf5'),
+    #     isic_ids=x_train.tolist(),
+    # )
 
     train_dataset = isic_skin_cancer_datset(
         osp.join(config.data_dir, 'train-metadata.csv'),
@@ -170,15 +175,18 @@ def prepare_data(config, x_train, x_val, train_transforms, val_transforms):
     return train_dataloader, val_dataloader
 
 
-def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
+def train(config, fold_i, train_dataloader, val_dataloader, logger):
     """
     training code per fold
     """
+
+    fold_i_str=f"fold_{fold_i}_" if fold_i is not None else ""
+
     model = isic_classifier(config)
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=config.checkpoints_dir,
-        filename=f'best_{fold_i}',
+        filename=f'{fold_i_str}best',
         save_top_k=1,
         monitor="val_binary_auc",
     )
@@ -200,9 +208,10 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
-    best_model_path = osp.join(config.checkpoints_dir, f'best_{fold_i}.ckpt')
+    best_model_path = osp.join(config.checkpoints_dir,
+                               f'{fold_i_str}best.ckpt')
 
-    mlflow.log_artifact(best_model_path, artifact_path="best_pretrain")
+    # mlflow.log_artifact(best_model_path, artifact_path="best_pretrain")
 
     print('%%%%%%%%%%% finetuning.....')
 
@@ -212,7 +221,7 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=config.checkpoints_dir,
-        filename=f'best_finetune_{fold_i}',
+        filename=f'{fold_i_str}best_finetune',
         save_top_k=1,
         monitor="val_binary_auc",
     )
@@ -234,56 +243,59 @@ def fold_train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
-    best_model_path = osp.join(config.checkpoints_dir, f'best_finetune_{fold_i}.ckpt')
-    mlflow.log_artifact(best_model_path, artifact_path="best_finetune")
+    best_model_path = osp.join(config.checkpoints_dir,
+                               f'{fold_i_str}best_finetune.ckpt')
+    # mlflow.log_artifact(best_model_path,
+    #                     artifact_path=f"{fold_i_s}best_finetune")
 
     final_model = isic_classifier.load_from_checkpoint(  # pylint: disable=no-value-for-parameter
         best_model_path, config=config, train_mode='finetuning'
     )
-    mlflow.pytorch.log_model(final_model, name="fold_best")
+    mlflow.pytorch.log_model(final_model,
+                             name=f"{fold_i_str}best_finetune_model")
 
 
-def infer_test_data(config, val_transforms):
-    """
-    inference code
-    ## not used currently
-    """
-    test_dataset = isic_skin_cancer_datset(
-        osp.join(config.data_dir, 'test-metadata.csv'),
-        osp.join(config.data_dir, 'test-image.hdf5'),
-        transform=val_transforms,
-        tab_features=config.tab_features,
-    )
+# def infer_test_data(config, val_transforms):
+#     """
+#     inference code
+#     ## not used currently
+#     """
+#     test_dataset = isic_skin_cancer_datset(
+#         osp.join(config.data_dir, 'test-metadata.csv'),
+#         osp.join(config.data_dir, 'test-image.hdf5'),
+#         transform=val_transforms,
+#         tab_features=config.tab_features,
+#     )
 
-    test_dataloader = DataLoader(
-        test_dataset,
-        batch_size=config.val_batch_size,
-        shuffle=False,
-        num_workers=config.num_workers,
-    )
+#     test_dataloader = DataLoader(
+#         test_dataset,
+#         batch_size=config.val_batch_size,
+#         shuffle=False,
+#         num_workers=config.num_workers,
+#     )
 
-    test_preds = []
+#     test_preds = []
 
-    for fold_i in range(config.n_fold):
+#     for fold_i in range(config.n_fold):
 
-        best_model_path = osp.join(config.checkpoints_dir, f'best_finetune_{fold_i}.ckpt')
-        model = isic_classifier.load_from_checkpoint(  # pylint: disable=no-value-for-parameter
-            best_model_path, config=config, train_mode='finetuning'
-        )
+#         best_model_path = osp.join(config.checkpoints_dir, f'best_finetune_{fold_i}.ckpt')
+#         model = isic_classifier.load_from_checkpoint(  # pylint: disable=no-value-for-parameter
+#             best_model_path, config=config, train_mode='finetuning'
+#         )
 
-        trainer = pl.Trainer(
-            accelerator="auto",
-            devices=1,
-            deterministic=True,
-        )
+#         trainer = pl.Trainer(
+#             accelerator="auto",
+#             devices=1,
+#             deterministic=True,
+#         )
 
-        preds = trainer.predict(model, test_dataloader, return_predictions=True)
+#         preds = trainer.predict(model, test_dataloader, return_predictions=True)
 
-        test_preds.append(np.concatenate([t.cpu().numpy() for t in preds]))
+#         test_preds.append(np.concatenate([t.cpu().numpy() for t in preds]))
 
-    test_metadata = pd.read_csv(osp.join(config.data_dir, 'test-metadata.csv'))
-    test_metadata['target'] = np.mean(test_preds, axis=0)
-    test_metadata[['isic_id', 'target']].to_csv('submission.csv', index=False)
+#     test_metadata = pd.read_csv(osp.join(config.data_dir, 'test-metadata.csv'))
+#     test_metadata['target'] = np.mean(test_preds, axis=0)
+#     test_metadata[['isic_id', 'target']].to_csv('submission.csv', index=False)
 
 
 def main(  # pylint: disable=too-many-locals
@@ -311,18 +323,31 @@ def main(  # pylint: disable=too-many-locals
         # from transforms import train_transforms, val_transforms
 
         config = __import__("config").config
-        transforms = __import__("transforms")
-        train_transforms = transforms.train_transforms
-        val_transforms = transforms.val_transforms
+
+        with open("config.json",
+                  "r",
+                  encoding="utf-8") as f:
+            new_config=json.load(f)
+            for k,v in new_config.items():
+                config[k]=v
+        config=Dict(config)
+
+        config.data_dir = data_dir
+        config.checkpoints_dir = osp.join(work_dir, 'checkpoints')
+        config.log_dir = osp.join(work_dir, 'logs')
+
+        #transforms = __import__("transforms")
+        #train_transforms = transforms.train_transforms
+        #val_transforms = transforms.val_transforms
+
+        train_transforms = create_pipeline('train_transform.json')
+        val_transforms = create_pipeline('val_transform.json')
 
         mlflow.log_dict(config.to_dict(), "trainer_config.json")
 
-        config.data_dir = data_dir
 
         # os.makedirs(work_dir, exist_ok=True)
 
-        config.checkpoints_dir = osp.join(work_dir, 'checkpoints')
-        config.log_dir = osp.join(work_dir, 'logs')
 
         pl.seed_everything(config.seed)
 
@@ -333,10 +358,12 @@ def main(  # pylint: disable=too-many-locals
 
         logger = CSVLogger(save_dir=config.log_dir)
 
+
         train_metadata = pd.read_csv(osp.join(config.data_dir, 'train-metadata.csv'))
 
         x = train_metadata['isic_id']
         y = train_metadata['target']
+
 
         print('########## StratifiedKFold ##########')
         skf = StratifiedKFold(n_splits=config.n_fold)
@@ -366,27 +393,53 @@ def main(  # pylint: disable=too-many-locals
                     config, x_train, reduced_x_val, train_transforms, val_transforms
                 )
                 print('######### training #############')
-                fold_train(config, i, train_dataloader, val_dataloader, logger)
+                train(config, i, train_dataloader, val_dataloader, logger)
 
-        logs = pd.read_csv(osp.join(config.log_dir, 'lightning_logs/version_0/metrics.csv'))
+        #with mlflow.start_run(run_name="full", nested=True, log_system_metrics=True):
+        x_val = train_metadata['isic_id']
 
-        logs = logs.loc[
-            logs['log_val'] == 1,
-            ['epoch', 'fold_i', 'train_mode', 'val_binary_auc', 'val_binary_auc_tpr.8'],
+        val_pos = train_metadata.loc[
+                    (train_metadata['isic_id'].isin(x_val)) & (train_metadata['target'] == 1)
         ]
+        val_neg = train_metadata.loc[
+                    (train_metadata['isic_id'].isin(x_val)) & (train_metadata['target'] == 0)
+                ]
 
-        logs.epoch = logs.epoch.astype('int')
-        logs.fold_i = logs.fold_i.astype('int')
-        logs.train_mode = logs.train_mode.astype('int')
+        reduced_x_val = pd.concat([val_pos['isic_id'], val_neg.loc[::50, 'isic_id']])
 
-        logs.train_mode = logs.train_mode.map(
-            lambda x: 'finetune' if x == 1 else 'transfer-learning'
-        )
+        train_dataloader, val_dataloader = prepare_data(
+                    config,
+                    None,
+                    reduced_x_val,
+                    train_transforms,
+                    val_transforms
+                )
+        print('######### training #############')
+        train(config,
+              None,
+              train_dataloader,
+              val_dataloader,
+              logger)
 
-        print('####################################')
-        print(logs.loc[logs['train_mode'] == 'finetune'])
-        print('####################################')
-        print(logs.loc[logs['train_mode'] == 'finetune', 'val_binary_auc_tpr.8'].mean())
+        # logs = pd.read_csv(osp.join(config.log_dir, 'lightning_logs/version_0/metrics.csv'))
+
+        # logs = logs.loc[
+        #     logs['log_val'] == 1,
+        #     ['epoch', 'fold_i', 'train_mode', 'val_binary_auc', 'val_binary_auc_tpr.8'],
+        # ]
+
+        # logs.epoch = logs.epoch.astype('int')
+        # logs.fold_i = logs.fold_i.astype('int')
+        # logs.train_mode = logs.train_mode.astype('int')
+
+        # logs.train_mode = logs.train_mode.map(
+        #     lambda x: 'finetune' if x == 1 else 'transfer-learning'
+        # )
+
+        # print('####################################')
+        # print(logs.loc[logs['train_mode'] == 'finetune'])
+        # print('####################################')
+        # print(logs.loc[logs['train_mode'] == 'finetune', 'val_binary_auc_tpr.8'].mean())
 
         # infer_test_data(config, val_transforms)
 

@@ -8,9 +8,8 @@ spec:
   restartPolicy: OnFailure
   containers:
     - name: base
-      image: ubuntu_toolset:latest
-      imagePullPolicy: Never
-      command: ["bash"]
+      image: busybox:latest
+      command: ["sh"]
       args:
         - -c
         - >-

@@ -26,6 +26,10 @@ from avro.io import DatumReader
 from kafka import KafkaConsumer
 from PIL import Image
 
+sys.path.append('../../')
+from utils.python_utils.data_pipeline_util import create_pipeline
+
+
 logging.basicConfig(
     level=logging.INFO, format="INFERENCE: %(asctime)s [%(levelname)s]: %(message)s"
 )
@@ -36,15 +40,20 @@ logging.basicConfig(
 TRT_LOGGER = trt.Logger(trt.Logger.INFO)
 
 sys.path.insert(0, '../db_interface')
-
-db_interface = importlib.import_module("db_interface")
+import db_interface
+#db_interface = importlib.import_module("db_interface")
 db_connector = db_interface.db_connector
 db_isic_inference = db_interface.db_isic_inference
 
-tab_features = importlib.import_module("config").tab_features
+config={}
+with open("trainer_config.json", "r", encoding="utf-8") as f:
+    config=Dict(json.load(f))
 
-preprocess_transform = importlib.import_module("preprocess_data").preprocess_transform
-val_transforms = importlib.import_module("transforms").val_transforms
+
+tab_features = config.tab_features
+
+preprocess_transform = create_pipeline("preprocess_transform.json")
+val_transforms = create_pipeline("val_transform.json")
 
 
 def build_engine_onnx(model_file):

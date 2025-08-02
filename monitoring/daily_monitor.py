@@ -64,8 +64,8 @@ def init_config():
     # monitoring_config.hist_bins=\
     #    int(os.getenv("hist_bins",25))
 
-    monitoring_config.monitoring_img_hist_bins = int(
-        os.getenv("monitoring_img_hist_bins", 5)  # pylint: disable=invalid-envvar-default
+    monitoring_config.monitoring_img_hist_bins_size = int(
+        os.getenv("monitoring_img_hist_bins_size", 5)  # pylint: disable=invalid-envvar-default
     )
 
     monitoring_config.mlflow_server_url = os.getenv(
@@ -75,7 +75,10 @@ def init_config():
         'mlflow_experiment_name', 'isic-skin-cancer-classification'
     )
 
-    monitoring_config.fold_run_id = os.getenv('fold_run_id', 'f5303275ff1545aeb4d0ec11fe4d7cff')
+    monitoring_config.run_id = os.getenv('run_id')
+    monitoring_config.run_type = os.getenv('run_type')
+    monitoring_config.start_date = os.getenv('start_date')
+    monitoring_config.end_date = os.getenv('end_date')
 
     return monitoring_config
 
@@ -90,36 +93,16 @@ def main(date, monitoring_config):
 
     pprint(monitoring_config.to_dict())
 
-    mlflow.set_tracking_uri(uri=monitoring_config.mlflow_server_url)
-    experiment = mlflow.set_experiment(monitoring_config.mlflow_experiment_name)
 
-    experiment_id = experiment.experiment_id
+    with open("trainer_config.json",
+              "r",encoding="utf-8") as f_cfg:
+        config=Dict(json.load(f_cfg))
 
-    fold_run = mlflow.get_run(run_id=monitoring_config.fold_run_id)
+    tab_features = config.tab_features
 
-    run_id = fold_run.data.tags['mlflow.parentRunId']
 
-    mlflow.artifacts.download_artifacts(
-        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{run_id}/artifacts/trainer/config.py',
-        dst_path='.',
-    )
-
-    tab_features = importlib.import_module("config").tab_features
-
-    monitoring_reference_data = mlflow.artifacts.download_artifacts(
-        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.fold_run_id}'
-        + '/artifacts/monitoring_reference_data/monitoring_reference_data.parquet',
-        dst_path='.',
-    )
-
-    monitoring_reference_cumul_hist = mlflow.artifacts.download_artifacts(
-        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.fold_run_id}' + ''
-        '/artifacts/monitoring_reference_cumul_hist/monitoring_reference_cumul_hist.parquet',
-        dst_path='.',
-    )
-
-    reference_data_df = pd.read_parquet(monitoring_reference_data)
-    reference_cumul_hist_df = pd.read_parquet(monitoring_reference_cumul_hist)
+    reference_data_df = pd.read_parquet(monitoring_config.monitoring_reference_data)
+    reference_cumul_hist_df = pd.read_parquet(monitoring_config.monitoring_reference_cumul_hist)
 
     pos_ref_data = reference_data_df[reference_data_df['target'] == 1]
     neg_ref_data = reference_data_df[reference_data_df['target'] == 0]
@@ -143,7 +126,7 @@ def main(date, monitoring_config):
 
     data = Dict(response.json())
 
-    bins = np.arange(0, 256, monitoring_config.monitoring_img_hist_bins)
+    bins = np.arange(0, 256, monitoring_config.monitoring_img_hist_bins_size)
     bins[-1] = 255
     bins_labels = [str(x / 2) for x in (bins[:-1] + bins[1:]).tolist()]
 
@@ -323,12 +306,8 @@ def main(date, monitoring_config):
         alarms_df.to_sql(name='alarms', con=engine, if_exists='append')
 
     with engine.connect() as connection:
-        grafana_allow_sql_select = """
-        GRANT USAGE ON SCHEMA public TO grafanareader;
-        GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafanareader;
-        """
-        connection.execute(text(grafana_allow_sql_select))
-
+        connection.execute(text("GRANT USAGE ON SCHEMA public TO grafanareader;"))
+        connection.execute(text("GRANT SELECT ON ALL TABLES IN SCHEMA public TO grafanareader;"))
     engine.dispose()
 
 
@@ -338,20 +317,49 @@ def runner():
     """
     monitoring_config = init_config()
 
-    dag_params = Dict(json.loads(os.getenv("dag_params").replace("\'", "\"")))
+    mlflow.set_tracking_uri(uri=monitoring_config.mlflow_server_url)
+    experiment = mlflow.set_experiment(monitoring_config.mlflow_experiment_name)
 
-    monitoring_config.fold_run_id = dag_params.fold_run_id
+    experiment_id = experiment.experiment_id
 
-    start_date = datetime.strptime(dag_params.start_date, "%Y-%m-%d")
+    #fold_run = mlflow.get_run(run_id=monitoring_config.run_id)
+
+    #run_id = fold_run.data.tags['mlflow.parentRunId']
+
+    mlflow.artifacts.download_artifacts(
+        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.run_id}/artifacts/trainer_config.json',
+        dst_path='.',
+    )
+    monitoring_config.monitoring_reference_data = mlflow.artifacts.download_artifacts(
+        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.run_id}'
+        + '/artifacts/monitoring_reference_data/monitoring_reference_data.parquet',
+        dst_path='.',
+    )
+
+    monitoring_config.monitoring_reference_cumul_hist = mlflow.artifacts.download_artifacts(
+        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.run_id}' + ''
+        '/artifacts/monitoring_reference_cumul_hist/monitoring_reference_cumul_hist.parquet',
+        dst_path='.',
+    )
+
+    #dag_params = Dict(json.loads(os.getenv("dag_params").replace("\'", "\"")))
+
+    #monitoring_config.fold_run_id = dag_params.fold_run_id
+
+    start_date = datetime.strptime(
+        monitoring_config.start_date,
+        "%Y-%m-%d")
 
     # print(monitoring_config)
     # print(dag_params)
     # print(start_date)
 
-    if dag_params.run_type == 'single':
+    if monitoring_config.run_type == 'single':
         main(start_date, monitoring_config)
-    elif dag_params.run_type == 'range':
-        end_date = datetime.strptime(dag_params.end_date, "%Y-%m-%d")
+    elif monitoring_config.run_type == 'range':
+        end_date = datetime.strptime(
+            monitoring_config.end_date,
+            "%Y-%m-%d")
 
         dates = []
         while start_date <= end_date:

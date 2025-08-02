@@ -15,9 +15,8 @@ extraEmptyDirMounts:
 
 extraInitContainers:
   - name: repo-clone
-    image: ubuntu_toolset:latest
-    imagePullPolicy: Never
-    command: ["bash"]
+    image: alpine/git:v2.49.1
+    command: ["sh"]
     args:
       - -c
       - >-

@@ -8,9 +8,8 @@ spec:
   restartPolicy: OnFailure
   initContainers:
     - name: repo-clone
-      image: ubuntu_toolset:latest
-      imagePullPolicy: Never
-      command: ["bash"]
+      image: alpine/git:v2.49.1
+      command: ["sh"]
       args:
         - -c
         - >-
@@ -44,11 +43,11 @@ spec:
       
       env:
     
-        - name: monitoring_img_hist_bins
+        - name: monitoring_img_hist_bins_size
           valueFrom:
               configMapKeyRef:
                 name: system-cfgmap
-                key: monitoring_img_hist_bins    
+                key: monitoring_img_hist_bins_size    
         - name: mlflow_server_url
           valueFrom:
               configMapKeyRef:

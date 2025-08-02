@@ -6,13 +6,13 @@ docker run --rm -it -v $(pwd):/home\
  --network host\
  -w /home\
  busybox:glibc wget -nc \
-  http://legion-pro-7-16arx8h:9000/test-image.hdf5\
-  http://legion-pro-7-16arx8h:9000/test-metadata.csv
+  http://localhost:9000/test-image.hdf5\
+  http://localhost:9000/test-metadata.csv
 
 docker run --rm -it -v $(pwd):/home\
  --network host\
  -e metadata_file=test-metadata.csv\
  -e image_file=test-image.hdf5\
- -e webserver_uri=http://legion-pro-7-16arx8h:8080\
+ -e webserver_uri=http://localhost:8080\
  -w /home\
-  webserver:latest bash
+  webserver:latest python web_client.py upload_month_data

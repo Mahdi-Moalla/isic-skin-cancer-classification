@@ -26,8 +26,8 @@ spec:
           - -c
           - >-
               cd /home &&
-              git clone $repo_code repo_code &&
-              cd  repo_code &&
+              git clone $code_repo code_repo &&
+              cd  code_repo &&
               git  checkout $repo_commit_id &&
               bash inference_webserver/inference/run_inference.sh
         

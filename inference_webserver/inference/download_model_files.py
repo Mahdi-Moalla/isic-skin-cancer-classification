@@ -9,10 +9,10 @@ import mlflow
 if __name__ == '__main__':
 
     py_artifacts = [
+        'trainer_config.json',
         'trainer/isic_model.py',
-        'trainer/config.py',
-        'trainer/transforms.py',
-        'data_preprocessor/preprocess_data.py',
+        'trainer/val_transform.json',
+        'data_preprocessor/preprocess_transform.json',
     ]
 
     mlflow_server_url = os.getenv('mlflow_server_url')

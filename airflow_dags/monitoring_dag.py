@@ -34,7 +34,7 @@ data:
   postgres_db_name: "monitoring_db"
 """
 
-with DAG(dag_id="monitoring_cfgmap_cleaner") as dag:
+with DAG(dag_id="monitoring_cleaner") as dag:
     cfgmap_delete = KubernetesDeleteResourceOperator(
         task_id="delete_monitoring_cfgmap",
         yaml_conf=MONITORING_CFG_MAP,
@@ -67,12 +67,12 @@ with DAG(
               use the button on the left for
               a pop-up calendar.""",
         ),
-        "fold_run_id": Param(
+        "run_id": Param(
             "",
             # In this example we have no default value
             # Form will enforce a value supplied by users to be able to trigger
             type="string",
-            title="fold_run_id",
+            title="run_id",
             description="This field is required. You can not submit without having value in here.",
         ),
     },
@@ -92,7 +92,9 @@ with DAG(
         ),
         # on_finish_action="keep_pod",
         task_id="monitoring-task",
-        env_vars=[k8s.V1EnvVar(name="dag_params", value="{{ params }}")],
+        env_vars=[k8s.V1EnvVar(name=k,
+                               value="{{ params[\""+k+"\"] }}") \
+                    for  k in dag.params.keys()],
         get_logs=True,
     )
 

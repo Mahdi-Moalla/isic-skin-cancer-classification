@@ -1,0 +1,28 @@
+{
+    "import_prefix": "torchvision.transforms.v2",
+    "pipeline_composer": "Compose",
+    "transforms": [
+        {
+            "transform": "ToDtype",
+            "args": {
+                "dtype": {"__import__":{"module":"torch","name":"float32"}},
+                "scale": true
+            }
+        },
+        {
+            "transform": "Normalize",
+            "args": {
+                "mean": [
+                    0.485,
+                    0.456,
+                    0.406
+                ],
+                "std": [
+                    0.229,
+                    0.224,
+                    0.225
+                ]
+            }
+        }
+    ]
+}

@@ -26,11 +26,6 @@ spec:
               configMapKeyRef:
                 name: training-pipeline-cfgmap
                 key: preprocessed_dataset_folder
-        - name: monitoring_img_hist_bins
-          valueFrom:
-              configMapKeyRef:
-                name: system-cfgmap
-                key: monitoring_img_hist_bins
           
       resources:
         limits:
@@ -53,6 +48,7 @@ spec:
             cd repo_code &&
             git checkout $repo_commit_id &&
             cd training_pipeline/trainer/ &&
+            cp /etc/isic_config/*  .  &&
             python train.py /workspace/data/$(preprocessed_dataset_folder) /workspace/data/work
 
       volumeMounts:
@@ -62,6 +58,8 @@ spec:
           name: mlflow-artifacts-volume
         - mountPath: /dev/shm
           name: shared-mem
+        - mountPath: /etc/isic_config
+          name: training-pipeline-json-defs-volume
   volumes: ###
     - name: training-pipeline-volume ###
       persistentVolumeClaim: ###
@@ -72,3 +70,13 @@ spec:
     - name: shared-mem
       medium: Memory
       sizeLimit: 256Mi
+    - name: training-pipeline-json-defs-volume
+      configMap:
+        name: training-pipeline-json-defs
+        items:
+        - key: config.json
+          path: config.json
+        - key: train_transform.json
+          path: train_transform.json
+        - key: val_transform.json
+          path: val_transform.json

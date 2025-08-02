@@ -40,9 +40,11 @@ In this project, we developed an MLOps system to automate the following tasks:
 | Deployment Packaging and Software Management | Helm       |
 | Container Orchestration                    | Kubernetes |
 
--  All components have been deployed to a single-node **Kubernetes** cluster
-- We used [**microk8s**](https://microk8s.io/) as a kubernetes orchestrator
-- All software are managed (installation/upgrade/uninstallation) through [**Helm**](https://helm.sh/)
+-  All components have been deployed to a single-node **Kubernetes** cluster. We used [**microk8s**](https://microk8s.io/) as a kubernetes orchestrator
+
+- All software are managed (installation/upgrade/uninstallation) through [**Helm**](https://helm.sh/).
+
+- **We do not package code in docker images. We only install python packages. The actual code (training, inference webservice, monitoring) is always retrieved from github before execution using a kuberenetes [init container](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/) running `git clone`. This provides a lot of benefits including flexibility and simplified deployment.**
 
 ### Model Training
 
@@ -58,6 +60,9 @@ In this project, we developed an MLOps system to automate the following tasks:
 
 - The  training and preprocessing code files are all logged to MLFlow for reproducibility. We also fixed initial randomness seeds to emphasize on the same goal.
 
+- The dataset presented a couple of challenges:
+  - The test set is negligible (3 samples) and without labels. We decided to split the original training set into a new training set and a new test set (80%-20%). The new test set is used to simulate monitoring.
+  - The number of positive samples (skin cancer lesions) is too low compared to the total number of samples (400 positive samples from ~~ 400000 samples). To create the new test set, we used a stratified split (20% of the positive samples are in the new test set). Moreover, in the training, we used a stratified k-fold cross validation (to assess the model performance) followed by training on the whole training set. Unless we obtain more positive samples (or possibly generate new ones using generative AI), we can not further split the training data into training and validation.
 
 ### Model Deployment
 
@@ -158,7 +163,11 @@ Prerequisites:
 git clone https://github.com/Mahdi-Moalla/isic-skin-cancer-classification
 ```
 
-### 2. Install microk8s
+### 2. Install Nvidia Container Toolkit
+
+Please refer to this [link](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) to install Nvidia container toolkit. Please configure it just for [docker](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#configuring-docker) and [containerd](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html#configuring-containerd-for-kubernetes)
+
+### 3. Install Microk8s
 
 for Ubuntu-based systems, you can use make to install microk8s
 ```shell
@@ -166,7 +175,7 @@ make init-microk8s
 ```
 For other systems, please refer  to this [link](https://microk8s.io/tutorials)
 
-### 3. Install Kubectl
+### 4. Install Kubectl
 
 Kubectl is a standard utility to interact with a kubernetes cluster. To  install it,  please refer to the following [link](https://kubernetes.io/docs/tasks/tools/#kubectl)
 
@@ -179,20 +188,14 @@ make kube_config=update init-kube-config
 make kube_config=create init-kube-config
 ```
 
-### 4. install Helm
+### 5. install Helm
 Please refer to the following [link](https://helm.sh/docs/intro/install/)
 
-### 5. Download and Split Data
+### 6. Download and Split Data
 
-Instead of downloading data from kaggle everytime, we will save it locally.  
+As discussed previously, we had to split the original training data.
 
-Also, the test data available in kaggle is negligible (only 3 samples). We also do not have access to their labels.  
-
-For that reason, I decided to split the original training dataset to new training and testing sets.  
-
-The new training set will be used for training and the new test set will be used to simulate monitoring.
-
-Please download the training files from [kaggle](https://www.kaggle.com/competitions/isic-2024-challenge/data). You need just the `train-metadata.csv` and `train-image.hdf5` files.
+Please download the original training files from [kaggle](https://www.kaggle.com/competitions/isic-2024-challenge/data). You need just the `train-metadata.csv` and `train-image.hdf5` files. You can also download them from this [google drive  link](https://drive.google.com/file/d/1insFKb58cCCabzPkLzSQZafSjZvN7Smd/view?usp=sharing).
 
 After putting them in the `utils/project_data_prepare` path, run the following commands:
 
@@ -204,39 +207,129 @@ python split_data.py
 cd ../..
 ```
 
-### 6. Install k9s (optional)
+### 7. Install k9s (optional)
 
-This is a very handy tool to inspect a kubernetes cluster.
+This is a very handy terminal-based utility to inspect a kubernetes cluster.
 You can find installation instructions on this [link](https://k9scli.io/topics/install/)
 
-### 7. Init the MLOps  system
+### 8. Init the MLOps  system
 
 ```shell
 make build_images=true init-all
 ```
 
-This will install the different services on kubernetes cluster:
-- Airflow:
-  - available on localhost:8888
+This will install the various services on the kubernetes cluster:  
+
+- `Airflow`:
+  - available on `localhost:8888`
   - Credentials:
-    - name: admin
-    - password: admin
-- MLFlow
-  - available on localhost:5000 
-- KAFKA
-- Gloo gateway
-- Adminer
+    - name: `admin`
+    - password: `admin`
+- `MLFlow`
+  - available on `localhost:5000` 
+- `KAFKA`
+- `Gloo` gateway
+- `Adminer`
   - used to inspect the central postgresql database
-  - Available on localhost:8880
-  - database server name: airflow-service-postgresql
-  - user: postgres
-  - password: postgres 
-- kafka-ui:
-  - used to inspect kafka service
-  - Available on localhost:8088
-  - kafka broker url: kafka-service-broker:9092
+  - Available on `localhost:8880`
+  - database server: 
+    - name: `airflow-service-postgresql`
+    - port: `5432`
+  - user: `postgres`
+  - password: `postgres` 
+- `kafka-ui`:
+  - used to inspect the kafka service
+  - Available on `localhost:8088`
+  - kafka broker server:
+    - name: `kafka-service-broker`
+    - port: `9092`
+
+In addition, this make target will perform a couple of additional  tasks:
+  - create a simple python `http.server` that is used to download training data into the kubernetes cluster.
+  - Initialize a couple of databases for `MLFlow`, `inference webservice` and the `monitoring` components. All  those databases can be inspected through `adminer`.
 
 
+### 9. Train Model
 
+To set the training configuration, you can modify the file `kubernetes_files/training_pipeline_config.yaml`. In this yaml file, you can find the definition of several json files. 
 
+Then, apply it to the kubernetes cluster by executing this  command:
 
+```shell
+kubectl apply -f kubernetes_files/training_pipeline_config.yaml 
+```
+
+You can now login to Airflow. There will be a couple of dags.
+You can start the `training_pipeline` dag and let it run to  completion.
+
+The training pipeline does not automatically register the best model into MLFlow model registry. We opted for a manual process. The user can inspect the model performance and decide whether to register the model or no.
+
+### 10. Start The inference Webserver
+
+First, we need to register the model. We also need to retrieve the MLFLow run id.
+
+In  MLFlow, this the structure of a run:
+![<img src="readme_images/shot1.jpg">](https://github.com/Mahdi-Moalla/isic-skin-cancer-classification/blob/40d8322b26da04887e5e6917a9576221ad1554b0/readme_images/shot1.jpg)
+
+Click on the the parent run and retrieve the run id.
+
+![<img src="readme_images/shot2.jpg">](https://github.com/Mahdi-Moalla/isic-skin-cancer-classification/blob/ae82a26087dc4e164214bc72d4430dca9146e87f/readme_images/shot2.jpg)
+
+Also, you can register the best model to the registry. After selecting the model, click on register the model. The model name is already added to the registry. 
+
+![<img src="readme_images/shot3.jpg">](https://github.com/Mahdi-Moalla/isic-skin-cancer-classification/blob/ae82a26087dc4e164214bc72d4430dca9146e87f/readme_images/shot3.jpg)
+
+Now, we can start the inference webserver.
+
+```shell
+# make run_id=<run id> registry_model_version=<new model version> init-inference-webserver
+make run_id=a744adc3f4d84c0796a5a8976ba6feb1 registry_model_version=1 init-inference-webserver
+# wait a couple of seconds
+make expose-inference-webserver  
+```
+
+### 11. Run Inference
+
+We have prepared a script to upload a set of samples to the inference webservice. The data upload time will correspond to the month of january 2025. Use the following command:
+
+```shell
+bash utils/web_client/run_web_client.sh
+```
+
+It will take some time to process the whole data. To follow the process until is finishes, please use the following commands:
+
+```shell
+kubectl attach $(kubectl get pod -n isic-skin-cancer-classification | grep isic-inference-deployment |  cut -d ' ' -f1)
+```
+
+### 12. Run the  Monitoring Airflow Dag
+
+The monitoring dag will request a set of parameters when it is triggered:
+  - run_type (dropdown list): whether you want to run the  monitoring workload for a single day or for a range of days
+  - start_date: this will be the day if you chose a single-day workload. You can use the calendar to choose it.
+  - end_date
+  - run_id: The MLFlow parent run id (we got in step 10)
+
+Please choose a range workload for the month of january 2025. You can as well follow the process through the following command:
+
+```shell
+kubectl attach $(kubectl get pod -n isic-skin-cancer-classification | grep monitoring-pod |  cut -d ' ' -f1)
+```
+
+### 13. Run Grafana Dashboard
+
+You can use make to run it:
+
+```shell
+make init-grafana
+# wait a couple of seconds
+make expose-grafana
+```
+
+Grafana is available on `localhost:8008`. The login credentials are `admin:admin`.
+
+### Clean up Everything
+
+```shell
+make delete-cluster
+```
