@@ -5,7 +5,7 @@ metadata:
   namespace: isic-skin-cancer-classification
 data:
   code_repo: "https://github.com/Mahdi-Moalla/isic-skin-cancer-classification"
-  repo_commit_id: "55156da962b8661eb6a7ac76ea89afcb8aa9ef2b"
+  repo_commit_id: "b1150dddad850954f399bc0f59889e870fb10498"
   monitoring_img_hist_bins_size: "5"
   mlflow_experiment_name: "isic-skin-cancer-classification"
   registry_model_name: "isic-skin-cancer-classification-model"
