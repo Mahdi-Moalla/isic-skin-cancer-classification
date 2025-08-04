@@ -8,7 +8,7 @@ In this project, I created an MLOps system to classify skin cancer images from t
 
 **Skin cancer** can be deadly if not caught early. To prevent late diagnosis, machine learning models are developed to detect possible skin cancer with low cost.  
 
-In this problem, data samples are composed of skin images and additional categorical and  numerical features. The goal is classify malignant skin lesions from benign ones.  
+In this problem, data samples are composed of skin images and additional categorical and  numerical features. The goal is classify those samples into malignant skin lesions and benign ones.  
 
 ## Project Overview
 
@@ -16,7 +16,7 @@ In this project, we developed an MLOps system to automate the following tasks:
 - model training and validation
 - experiment tracking
 - workflows orchestration
-- models deployment
+- model deployment
 - model monitoring
 
 ## Technology Stack
@@ -40,11 +40,11 @@ In this project, we developed an MLOps system to automate the following tasks:
 | Deployment Packaging and Software Management | Helm       |
 | Container Orchestration                    | Kubernetes |
 
--  All components have been deployed to a single-node **Kubernetes** cluster. We used [**microk8s**](https://microk8s.io/) as a kubernetes orchestrator
+-  All components have been deployed to a single-node **Kubernetes** cluster. We used [**microk8s**](https://microk8s.io/) as a kubernetes system.
 
 - All software are managed (installation/upgrade/uninstallation) through [**Helm**](https://helm.sh/).
 
-- **We do not package code in docker images. We only install python packages. The actual code (training, inference webservice, monitoring) is always retrieved from github before execution using a kuberenetes [init container](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/) running `git clone`. This provides a lot of benefits including flexibility and simplified deployment.**
+- **We do not package code in docker images. We only install python packages. The actual code (training, inference webservice, monitoring) is always retrieved from github before execution using kuberenetes [init containers](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/) running `git clone`. This provides a lot of benefits including flexibility and simplified deployment.**
 
 ### Model Training
 
@@ -62,7 +62,7 @@ In this project, we developed an MLOps system to automate the following tasks:
 
 - The dataset presented a couple of challenges:
   - The test set is negligible (3 samples) and without labels. We decided to split the original training set into a new training set and a new test set (80%-20%). The new test set is used to simulate monitoring.
-  - The number of positive samples (skin cancer lesions) is too low compared to the total number of samples (400 positive samples from ~~ 400000 samples). To create the new test set, we used a stratified split (20% of the positive samples are in the new test set). Moreover, in the training, we used a stratified k-fold cross validation (to assess the model performance) followed by training on the whole training set. Unless we obtain more positive samples (or possibly generate new ones using generative AI), we can not further split the training data into training and validation.
+  - The number of positive samples (skin cancer lesions) is too low compared to the total number of samples (400 positive samples from a total of 400000 samples). To create the new test set, we used a stratified split (20% of the positive samples are in the new test set). Moreover, in the training, we used a stratified k-fold cross validation (to assess the model performance) followed by training on the whole training set. Unless we obtain more positive samples (or possibly generate new ones using generative AI), we can not further split the training data into training and validation.
 
 ### Model Deployment
 
@@ -72,8 +72,8 @@ In this project, we developed an MLOps system to automate the following tasks:
 
 - The deployment package is composed of 3 components:
     1. **backend**: receives new data samples
-    2. **data-persistance**: persists new data samples to database and file storage
-    3. **inference**: performs  inference and saves probability scores to databasse
+    2. **data-persistance**: save new data samples to the database (tabular features) and file storage (image)
+    3. **inference**: performs inference and saves inference scores to the database.
 
 - To upload new data samples, we used the following **KAFKA-based** streaming architecture:   
 
@@ -128,7 +128,7 @@ Depending on the request URL:
 
 ###  Monitoring
 
-- Monitoring is performed as an  airflow dag. It can be scheduled to run on a daily basis. (To Do)
+- Monitoring is performed as an airflow dag. It can be scheduled to run on a daily basis. (To Do)
 
 -  Monitoring can be done for a single date or a date range. (configuration through the Airflow UI)
 
@@ -142,7 +142,7 @@ Depending on the request URL:
 
 We used:
   - black for code formatting
-  - isort for  import sorting
+  - isort for import sorting
   - pylint for code linting
   - makefile to automate the different task
   - pre-commit hooks
@@ -177,7 +177,7 @@ For other systems, please refer  to this [link](https://microk8s.io/tutorials)
 
 ### 4. Install Kubectl
 
-Kubectl is a standard utility to interact with a kubernetes cluster. To  install it,  please refer to the following [link](https://kubernetes.io/docs/tasks/tools/#kubectl)
+Kubectl is a standard utility to interact with a kubernetes cluster. To  install it, please refer to the following [link](https://kubernetes.io/docs/tasks/tools/#kubectl)
 
 In order for Kubectl (or any tool interacting with kubernetes) to effectively communicate with a kubernetes cluster, a config file must be created or updated.
 
@@ -197,7 +197,7 @@ As discussed previously, we had to split the original training data.
 
 Please download the original training files from [kaggle](https://www.kaggle.com/competitions/isic-2024-challenge/data). You need just the `train-metadata.csv` and `train-image.hdf5` files. You can also download them from this [google drive  link](https://drive.google.com/file/d/1insFKb58cCCabzPkLzSQZafSjZvN7Smd/view?usp=sharing).
 
-After putting them in the `utils/project_data_prepare` path, run the following commands:
+After putting them in the `utils/project_data_prepare` folder, run the following commands:
 
 ```shell
 # ensure you have the necessary python packages
@@ -230,7 +230,7 @@ This will install the various services on the kubernetes cluster:
 - `KAFKA`
 - `Gloo` gateway
 - `Adminer`
-  - used to inspect the central postgresql database
+  - used to inspect the postgresql database
   - Available on `localhost:8880`
   - database server: 
     - name: `airflow-service-postgresql`
@@ -246,7 +246,7 @@ This will install the various services on the kubernetes cluster:
 
 In addition, this make target will perform a couple of additional  tasks:
   - create a simple python `http.server` that is used to download training data into the kubernetes cluster.
-  - Initialize a couple of databases for `MLFlow`, `inference webservice` and the `monitoring` components. All  those databases can be inspected through `adminer`.
+  - Initialize a couple of databases for `MLFlow`, `inference webservice` and the `monitoring` components. All  those databases can be inspected with `adminer`.
 
 
 ### 9. Train Model
@@ -260,9 +260,9 @@ kubectl apply -f kubernetes_files/training_pipeline_config.yaml
 ```
 
 You can now login to Airflow. There will be a couple of dags.
-You can start the `training_pipeline` dag and let it run to  completion.
+You can start the `training_pipeline` dag and let it run to completion.
 
-The training pipeline does not automatically register the best model into MLFlow model registry. We opted for a manual process. The user can inspect the model performance and decide whether to register the model or no.
+The training pipeline does not automatically register the best model into MLFlow model registry. We opted for a manual registration. The user can inspect the model performance and decide whether to register it or no.
 
 ### 10. Start The inference Webserver
 
@@ -282,10 +282,10 @@ Also, you can register the best model to the registry. After selecting the model
 Now, we can start the inference webserver.
 
 ```shell
-# make run_id=<run id> registry_model_version=<new model version> init-inference-webserver
+# make run_id=<parent run id> registry_model_version=<registry model version> init-inference-webserver
 make run_id=a744adc3f4d84c0796a5a8976ba6feb1 registry_model_version=1 init-inference-webserver
 # wait a couple of seconds
-make expose-inference-webserver  
+make expose-inference-webserver
 ```
 
 ### 11. Run Inference
@@ -305,12 +305,12 @@ kubectl attach $(kubectl get pod -n isic-skin-cancer-classification | grep isic-
 ### 12. Run the  Monitoring Airflow Dag
 
 The monitoring dag will request a set of parameters when it is triggered:
-  - run_type (dropdown list): whether you want to run the  monitoring workload for a single day or for a range of days
+  - run_type (dropdown list): whether you want to run the monitoring workload for a single day or for a range of days.
   - start_date: this will be the day if you chose a single-day workload. You can use the calendar to choose it.
   - end_date
   - run_id: The MLFlow parent run id (we got in step 10)
 
-Please choose a range workload for the month of january 2025. You can as well follow the process through the following command:
+Please choose a range workload for the month of january 2025. You can as well follow the process with the following command:
 
 ```shell
 kubectl attach $(kubectl get pod -n isic-skin-cancer-classification | grep monitoring-pod |  cut -d ' ' -f1)
@@ -333,3 +333,20 @@ Grafana is available on `localhost:8008`. The login credentials are `admin:admin
 ```shell
 make delete-cluster
 ```
+
+## Common Issues
+
+### Connection issues
+
+If you lost connection to a service, you can restablish connection to it by running:
+
+```shell
+# make  expose-<service>
+make expose-airflow
+make expose-mlflow 
+make expose-adminer 
+make expose-kafka-ui
+make expose-inference-webserver 
+make expose-grafana
+```
+

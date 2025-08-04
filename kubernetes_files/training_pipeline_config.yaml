@@ -7,7 +7,7 @@ data:
   # The key for your JSON data
   config.json: |
     {
-        "epochs": 1,
+        "epochs": 15,
         "tab_features": [
             "clin_size_long_diam_mm",
             "tbp_lv_A",
@@ -67,7 +67,7 @@ data:
             "factor": 0.1,
             "patience": 5
         },
-        "n_fold": 2,
+        "n_fold": 5,
         "pos_class_weight": 2.0,
         "roc_pos_class_weight": 1000
     }

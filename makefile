@@ -286,7 +286,7 @@ init-apps: init-airflow init-dataset-http-server init-dbs init-adminer init-mlfl
 	echo "apps installed"
 
 
-expose-all: expose-airflow expose-mlflow expose-adminer expose-kafka-ui expose-postgres
+expose-all: expose-airflow expose-mlflow expose-adminer expose-kafka-ui expose-postgres expose-inference-webserver expose-grafana
 	echo "all services exposed"
 
 
