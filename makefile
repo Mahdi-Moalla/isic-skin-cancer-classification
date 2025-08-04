@@ -295,8 +295,11 @@ init-all: init-cluster init-namespace init-images init-apps
 	echo "system ready"
 
 code-formatter:
-	black --skip-string-normalization $(file)
-	isort $(file)
+	black .
+	isort .
+
+lint:
+	conda run -p ~/envs/mlops pylint .
 
 
 init-pre-commit:

@@ -17,7 +17,7 @@ In this project, we developed an MLOps system to automate the following tasks:
 - experiment tracking
 - workflows orchestration
 - models deployment
-- monitoring
+- model monitoring
 
 ## Technology Stack
 

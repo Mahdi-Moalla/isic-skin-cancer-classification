@@ -41,8 +41,8 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
         if not self.sanity_check:
             self.sanity_check = True
             return
-        
-        fold_i_str=f"fold_{trainer.fold_i}_" if trainer.fold_i is not None else ""
+
+        fold_i_str = f"fold_{trainer.fold_i}_" if trainer.fold_i is not None else ""
 
         val_scores_np = np.array(pl_module.validation_scores)
         val_targets_np = np.array(pl_module.validation_targets)
@@ -88,7 +88,7 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
 
         pl_module.log("val_binary_auc_tpr.8", score_08, on_epoch=True, prog_bar=True, logger=True)
         pl_module.log("val_binary_auc", score, on_epoch=True, prog_bar=True, logger=True)
-        if  trainer.fold_i is not None:
+        if trainer.fold_i is not None:
             pl_module.log(
                 "fold_i",
                 trainer.fold_i,
@@ -141,7 +141,7 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
         on fit end callback
         """
 
-        fold_i_str=f"fold_{trainer.fold_i}_" if trainer.fold_i is not None else ""
+        fold_i_str = f"fold_{trainer.fold_i}_" if trainer.fold_i is not None else ""
 
         plt.figure()
         plt.plot(self.val_binary_auc, color='b', marker="*")
@@ -162,8 +162,7 @@ class binary_auroc_scorer(Callback):  # pylint: disable=invalid-name
             osp.join(
                 self.config.log_dir,
                 'aucs',
-                f'aucs08_{fold_i_str}mode_'
-                + f'{self.train_mode_lut[pl_module.train_mode]}.png',
+                f'aucs08_{fold_i_str}mode_' + f'{self.train_mode_lut[pl_module.train_mode]}.png',
             )
         )
         plt.show()

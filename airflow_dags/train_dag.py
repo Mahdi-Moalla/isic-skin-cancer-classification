@@ -61,14 +61,6 @@ with DAG(dag_id="training_pipeline_cleaner") as dag:
     )
 
 
-# def trigger_cleaner_dag(context):
-#     c = Client(None, None)
-#     c.trigger_dag(
-#         dag_id='training_pipeline_cleaner',
-#         run_id=f'cleaner_run_{str(datetime.datetime.now())}',
-#     )
-
-
 with DAG(
     dag_id="training_pipeline"
     # on_failure_callback=trigger_cleaner_dag,
@@ -152,7 +144,6 @@ with DAG(
             Path(osp.join(DAG_FILE_PATH, 'trainer_pod.yml')).read_text(encoding="utf-8")
         ),
         task_id="trainer",
-        # on_finish_action="keep_pod",
         do_xcom_push=True,
         env_vars=[
             k8s.V1EnvVar(

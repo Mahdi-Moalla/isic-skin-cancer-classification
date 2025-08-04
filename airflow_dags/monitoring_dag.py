@@ -92,9 +92,9 @@ with DAG(
         ),
         # on_finish_action="keep_pod",
         task_id="monitoring-task",
-        env_vars=[k8s.V1EnvVar(name=k,
-                               value="{{ params[\""+k+"\"] }}") \
-                    for  k in dag.params.keys()],
+        env_vars=[
+            k8s.V1EnvVar(name=k, value="{{ params[\"" + k + "\"] }}") for k in dag.params.keys()
+        ],
         get_logs=True,
     )
 

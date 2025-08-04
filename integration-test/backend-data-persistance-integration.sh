@@ -13,10 +13,6 @@ docker compose -f \
     up --force-recreate --remove-orphans -d --wait # --no-attach kafka  
 
 sleep 1
-# curl http://localhost:8080/v1/data-persistance/test
-# echo ""
-# curl http://localhost:8080/v1/backend/test
-# echo ""
 
 docker run --rm -v $(pwd):/home\
  --network integration-public-net\

@@ -5,13 +5,10 @@ data preprocessing task
 import io
 import json
 import os
-import sys
 import os.path as osp
 import shutil
+import sys
 from pathlib import Path
-
-#import albumentations as A
-#import cv2
 
 import fire
 import h5py
@@ -21,9 +18,14 @@ import pandas as pd
 from PIL import Image, ImageStat
 from tqdm import tqdm
 
+# import albumentations as A
+# import cv2
+
 
 sys.path.append('../../')
-from utils.python_utils.data_pipeline_util import create_pipeline
+from utils.python_utils.data_pipeline_util import (  # pylint: disable=wrong-import-position
+    create_pipeline,
+)
 
 # preprocess_transform = A.Compose(
 #     [
@@ -118,10 +120,10 @@ from utils.python_utils.data_pipeline_util import create_pipeline
 #     os.remove('monitoring_reference_cumul_hist.parquet')
 
 
-def preprocess_data(
+def preprocess_data(  # pylint: disable=too-many-statements
     input_data_path='../../project_data_prepare/split_dataset/',
     preprocessed_data_path='./preprocessed_data/',
-    preprocess_transform_json='./preprocess_transform.json'
+    preprocess_transform_json='./preprocess_transform.json',
 ):
     """
     main preprocessing function
@@ -136,8 +138,6 @@ def preprocess_data(
         os.makedirs(preprocessed_data_path)
     run_context = os.getenv("run_context").replace("\'", "\"")
     run_context = json.loads(run_context)
-
-
 
     mlflow.set_tracking_uri(uri=run_context["mlflow_server_uri"])
     mlflow.set_experiment(run_context["experiment_name"])
@@ -157,27 +157,24 @@ def preprocess_data(
 
         bins_labels = [str(x / 2) for x in (bins[:-1] + bins[1:]).tolist()]
 
-        metadata = pd.read_csv(osp.join(input_data_path, 'train-metadata.csv'),
-                               low_memory=False)
+        metadata = pd.read_csv(osp.join(input_data_path, 'train-metadata.csv'), low_memory=False)
 
         isic_id_lut = {idx: k for k, idx in enumerate(metadata['isic_id'])}
 
-        isic_ids=metadata['isic_id'].tolist()
+        isic_ids = metadata['isic_id'].tolist()
 
         data = []
 
         hists = {}
         for color in ['r', 'g', 'b']:
-            hists[color]={}
+            hists[color] = {}
             for bin_label in bins_labels:
-                hists[color][bin_label]={}
+                hists[color][bin_label] = {}
                 hists[color][bin_label]['sum'] = 0.0
                 hists[color][bin_label]['count'] = 0
 
         with h5py.File(osp.join(input_data_path, 'train-image.hdf5'), 'r') as f_in:
-            with h5py.File(
-                    osp.join(preprocessed_data_path, 'train-image.hdf5'), 'w'
-                ) as f_out:
+            with h5py.File(osp.join(preprocessed_data_path, 'train-image.hdf5'), 'w') as f_out:
                 for isic_id in tqdm(isic_ids):
 
                     record = metadata.iloc[isic_id_lut[isic_id]].to_dict()
@@ -231,8 +228,6 @@ def preprocess_data(
         )
 
         os.remove('monitoring_reference_cumul_hist.parquet')
-
-
 
     with open('/airflow/xcom/return.json', 'w', encoding="utf-8") as f:
         json.dump(run_context, f)

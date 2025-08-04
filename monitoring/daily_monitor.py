@@ -2,8 +2,6 @@
 daily monitoring script
 """
 
-import importlib
-
 # pylint: disable=import-error
 import io
 import json
@@ -93,13 +91,10 @@ def main(date, monitoring_config):
 
     pprint(monitoring_config.to_dict())
 
-
-    with open("trainer_config.json",
-              "r",encoding="utf-8") as f_cfg:
-        config=Dict(json.load(f_cfg))
+    with open("trainer_config.json", "r", encoding="utf-8") as f_cfg:
+        config = Dict(json.load(f_cfg))
 
     tab_features = config.tab_features
-
 
     reference_data_df = pd.read_parquet(monitoring_config.monitoring_reference_data)
     reference_cumul_hist_df = pd.read_parquet(monitoring_config.monitoring_reference_cumul_hist)
@@ -322,12 +317,13 @@ def runner():
 
     experiment_id = experiment.experiment_id
 
-    #fold_run = mlflow.get_run(run_id=monitoring_config.run_id)
+    # fold_run = mlflow.get_run(run_id=monitoring_config.run_id)
 
-    #run_id = fold_run.data.tags['mlflow.parentRunId']
+    # run_id = fold_run.data.tags['mlflow.parentRunId']
 
     mlflow.artifacts.download_artifacts(
-        artifact_uri=f'mlflow-artifacts:/{experiment_id}/{monitoring_config.run_id}/artifacts/trainer_config.json',
+        artifact_uri=f'mlflow-artifacts:/{experiment_id}/'
+        + f'{monitoring_config.run_id}/artifacts/trainer_config.json',
         dst_path='.',
     )
     monitoring_config.monitoring_reference_data = mlflow.artifacts.download_artifacts(
@@ -342,13 +338,11 @@ def runner():
         dst_path='.',
     )
 
-    #dag_params = Dict(json.loads(os.getenv("dag_params").replace("\'", "\"")))
+    # dag_params = Dict(json.loads(os.getenv("dag_params").replace("\'", "\"")))
 
-    #monitoring_config.fold_run_id = dag_params.fold_run_id
+    # monitoring_config.fold_run_id = dag_params.fold_run_id
 
-    start_date = datetime.strptime(
-        monitoring_config.start_date,
-        "%Y-%m-%d")
+    start_date = datetime.strptime(monitoring_config.start_date, "%Y-%m-%d")
 
     # print(monitoring_config)
     # print(dag_params)
@@ -357,9 +351,7 @@ def runner():
     if monitoring_config.run_type == 'single':
         main(start_date, monitoring_config)
     elif monitoring_config.run_type == 'range':
-        end_date = datetime.strptime(
-            monitoring_config.end_date,
-            "%Y-%m-%d")
+        end_date = datetime.strptime(monitoring_config.end_date, "%Y-%m-%d")
 
         dates = []
         while start_date <= end_date:

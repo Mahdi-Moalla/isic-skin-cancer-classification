@@ -10,43 +10,50 @@ repos:
   - id: check-yaml
     exclude: inference_webserver/helm_chart/inference_webserver/
   - id: check-added-large-files
-# - repo: https://github.com/psf/black
-#   rev: 25.1.0
-#   hooks:
-#     - id: black
-# - repo: https://github.com/pycqa/isort
-#   rev: 6.0.1
-#   hooks:
-#     - id: isort
-#       name: isort (python)
-# - repo: local
-#   hooks:
-#     - id: pylint
-#       name: pylint
-#       entry: conda run -p ~/envs/mlops pylint
-#       language: system
-#       types: [python]
-#       args: [
-#         "--recursive=y",
-#         "."
-#       ]
-# - repo: local
-#   hooks:
-#     - id: pytest-check
-#       name: pytest-check
-#       entry: conda run -p ~/envs/mlops pytest
-#       language: system
-#       pass_filenames: false
-#       always_run: true
-#       args: [
-#         "."
-#       ]
-# - repo: local
-#   hooks:
-#     - id: run-integration-tests
-#       name: Run integration tests
-#       entry: bash integration-test/backend-data-persistance-integration.sh
-#       language: system
-#       pass_filenames: false
-#       # types: [shell]
-#       # verbose: true
+- repo: https://github.com/psf/black
+  rev: 25.1.0
+  hooks:
+    - id: black
+- repo: https://github.com/pycqa/isort
+  rev: 6.0.1
+  hooks:
+    - id: isort
+      name: isort (python)
+- repo: local
+  hooks:
+    - id: pylint
+      name: pylint
+      entry: conda run -p ~/envs/mlops pylint
+      language: system
+      types: [python]
+      args: [
+        "--recursive=y",
+        "."
+      ]
+- repo: local
+  hooks:
+    - id: Helm lint
+      name: Run Helm lint
+      entry: helm lint inference_webserver/helm_chart/inference_webserver
+      language: system
+      pass_filenames: false
+- repo: local
+  hooks:
+    - id: pytest-check
+      name: pytest-check
+      entry: conda run -p ~/envs/mlops pytest
+      language: system
+      pass_filenames: false
+      always_run: true
+      args: [
+        "."
+      ]
+- repo: local
+  hooks:
+    - id: run-integration-tests
+      name: Run integration tests
+      entry: bash integration-test/backend-data-persistance-integration.sh
+      language: system
+      pass_filenames: false
+      # types: [shell]
+      # verbose: true

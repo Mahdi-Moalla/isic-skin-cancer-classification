@@ -5,7 +5,7 @@ load data  from kafka + tensorrt inference
 
 # pylint:  disable=import-error
 
-import importlib
+# import importlib
 import io
 import json
 import logging
@@ -26,9 +26,13 @@ from avro.io import DatumReader
 from kafka import KafkaConsumer
 from PIL import Image
 
-sys.path.append('../../')
-from utils.python_utils.data_pipeline_util import create_pipeline
+sys.path.insert(0, '../db_interface')
+import db_interface  # pylint: disable=wrong-import-position
 
+sys.path.append('../../')
+from utils.python_utils.data_pipeline_util import (  # pylint: disable=wrong-import-position
+    create_pipeline,
+)
 
 logging.basicConfig(
     level=logging.INFO, format="INFERENCE: %(asctime)s [%(levelname)s]: %(message)s"
@@ -39,15 +43,13 @@ logging.basicConfig(
 
 TRT_LOGGER = trt.Logger(trt.Logger.INFO)
 
-sys.path.insert(0, '../db_interface')
-import db_interface
-#db_interface = importlib.import_module("db_interface")
-db_connector = db_interface.db_connector
-db_isic_inference = db_interface.db_isic_inference
 
-config={}
+# db_interface = importlib.import_module("db_interface")
+db_connector = db_interface.db_connector  # pylint: disable=invalid-name
+db_isic_inference = db_interface.db_isic_inference  # pylint: disable=invalid-name
+
 with open("trainer_config.json", "r", encoding="utf-8") as f:
-    config=Dict(json.load(f))
+    config = Dict(json.load(f))
 
 
 tab_features = config.tab_features
@@ -62,10 +64,10 @@ def build_engine_onnx(model_file):
     """
     builder = trt.Builder(TRT_LOGGER)
     network = builder.create_network(0)
-    config = builder.create_builder_config()
+    builder_config = builder.create_builder_config()
     parser = trt.OnnxParser(network, TRT_LOGGER)
 
-    config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, common.GiB(1))
+    builder_config.set_memory_pool_limit(trt.MemoryPoolType.WORKSPACE, common.GiB(1))
     # Load the Onnx model and parse it in order to populate the TensorRT network.
     with open(model_file, "rb") as model:
         if not parser.parse(model.read()):
@@ -74,7 +76,7 @@ def build_engine_onnx(model_file):
                 print(parser.get_error(error))
             return None
 
-    engine_bytes = builder.build_serialized_network(network, config)
+    engine_bytes = builder.build_serialized_network(network, builder_config)
     runtime = trt.Runtime(TRT_LOGGER)
     return runtime.deserialize_cuda_engine(engine_bytes)
 

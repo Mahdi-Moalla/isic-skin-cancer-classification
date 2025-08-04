@@ -9,9 +9,9 @@ import os
 import os.path as osp
 
 # isort: on
-import sys
 import json
 import shutil
+import sys
 import warnings
 from pathlib import Path
 
@@ -19,21 +19,21 @@ os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 warnings.filterwarnings("ignore")
 
 import fire
-#import h5py
-from addict import  Dict
 import mlflow
-import numpy as np
 import pandas as pd
 
 # import torch
+# import h5py
 from addict import Dict
 from isic_datset import isic_skin_cancer_datset, isic_train_sampler
 from isic_model import isic_classifier
-#from PIL import Image, ImageStat
+
+# from PIL import Image, ImageStat
 from scorer import binary_auroc_scorer
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader
-#from tqdm import tqdm
+
+# from tqdm import tqdm
 
 # isort: off
 import pytorch_lightning as pl
@@ -47,7 +47,6 @@ from pytorch_lightning.callbacks import (
 
 sys.path.append('../../')
 from utils.python_utils.data_pipeline_util import create_pipeline
-
 
 # def log_train_data(metadata_file, image_file, isic_ids):  # pylint: disable=too-many-locals
 #     """
@@ -180,7 +179,7 @@ def train(config, fold_i, train_dataloader, val_dataloader, logger):
     training code per fold
     """
 
-    fold_i_str=f"fold_{fold_i}_" if fold_i is not None else ""
+    fold_i_str = f"fold_{fold_i}_" if fold_i is not None else ""
 
     model = isic_classifier(config)
 
@@ -208,8 +207,7 @@ def train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
-    best_model_path = osp.join(config.checkpoints_dir,
-                               f'{fold_i_str}best.ckpt')
+    best_model_path = osp.join(config.checkpoints_dir, f'{fold_i_str}best.ckpt')
 
     # mlflow.log_artifact(best_model_path, artifact_path="best_pretrain")
 
@@ -243,16 +241,14 @@ def train(config, fold_i, train_dataloader, val_dataloader, logger):
 
     trainer.fit(model, train_dataloaders=train_dataloader, val_dataloaders=val_dataloader)
 
-    best_model_path = osp.join(config.checkpoints_dir,
-                               f'{fold_i_str}best_finetune.ckpt')
+    best_model_path = osp.join(config.checkpoints_dir, f'{fold_i_str}best_finetune.ckpt')
     # mlflow.log_artifact(best_model_path,
     #                     artifact_path=f"{fold_i_s}best_finetune")
 
     final_model = isic_classifier.load_from_checkpoint(  # pylint: disable=no-value-for-parameter
         best_model_path, config=config, train_mode='finetuning'
     )
-    mlflow.pytorch.log_model(final_model,
-                             name=f"{fold_i_str}best_finetune_model")
+    mlflow.pytorch.log_model(final_model, name=f"{fold_i_str}best_finetune_model")
 
 
 # def infer_test_data(config, val_transforms):
@@ -324,30 +320,26 @@ def main(  # pylint: disable=too-many-locals
 
         config = __import__("config").config
 
-        with open("config.json",
-                  "r",
-                  encoding="utf-8") as f:
-            new_config=json.load(f)
-            for k,v in new_config.items():
-                config[k]=v
-        config=Dict(config)
+        with open("config.json", "r", encoding="utf-8") as f:
+            new_config = json.load(f)
+            for k, v in new_config.items():
+                config[k] = v
+        config = Dict(config)
 
         config.data_dir = data_dir
         config.checkpoints_dir = osp.join(work_dir, 'checkpoints')
         config.log_dir = osp.join(work_dir, 'logs')
 
-        #transforms = __import__("transforms")
-        #train_transforms = transforms.train_transforms
-        #val_transforms = transforms.val_transforms
+        # transforms = __import__("transforms")
+        # train_transforms = transforms.train_transforms
+        # val_transforms = transforms.val_transforms
 
         train_transforms = create_pipeline('train_transform.json')
         val_transforms = create_pipeline('val_transform.json')
 
         mlflow.log_dict(config.to_dict(), "trainer_config.json")
 
-
         # os.makedirs(work_dir, exist_ok=True)
-
 
         pl.seed_everything(config.seed)
 
@@ -358,12 +350,10 @@ def main(  # pylint: disable=too-many-locals
 
         logger = CSVLogger(save_dir=config.log_dir)
 
-
         train_metadata = pd.read_csv(osp.join(config.data_dir, 'train-metadata.csv'))
 
         x = train_metadata['isic_id']
         y = train_metadata['target']
-
 
         print('########## StratifiedKFold ##########')
         skf = StratifiedKFold(n_splits=config.n_fold)
@@ -395,31 +385,23 @@ def main(  # pylint: disable=too-many-locals
                 print('######### training #############')
                 train(config, i, train_dataloader, val_dataloader, logger)
 
-        #with mlflow.start_run(run_name="full", nested=True, log_system_metrics=True):
+        # with mlflow.start_run(run_name="full", nested=True, log_system_metrics=True):
         x_val = train_metadata['isic_id']
 
         val_pos = train_metadata.loc[
-                    (train_metadata['isic_id'].isin(x_val)) & (train_metadata['target'] == 1)
+            (train_metadata['isic_id'].isin(x_val)) & (train_metadata['target'] == 1)
         ]
         val_neg = train_metadata.loc[
-                    (train_metadata['isic_id'].isin(x_val)) & (train_metadata['target'] == 0)
-                ]
+            (train_metadata['isic_id'].isin(x_val)) & (train_metadata['target'] == 0)
+        ]
 
         reduced_x_val = pd.concat([val_pos['isic_id'], val_neg.loc[::50, 'isic_id']])
 
         train_dataloader, val_dataloader = prepare_data(
-                    config,
-                    None,
-                    reduced_x_val,
-                    train_transforms,
-                    val_transforms
-                )
+            config, None, reduced_x_val, train_transforms, val_transforms
+        )
         print('######### training #############')
-        train(config,
-              None,
-              train_dataloader,
-              val_dataloader,
-              logger)
+        train(config, None, train_dataloader, val_dataloader, logger)
 
         # logs = pd.read_csv(osp.join(config.log_dir, 'lightning_logs/version_0/metrics.csv'))
 
