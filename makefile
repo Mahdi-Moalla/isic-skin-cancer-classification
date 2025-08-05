@@ -200,6 +200,7 @@ remove-mlflow:
 	kubectl delete -f  kubernetes_files/mlflow_pvcs.yml
 
 init-dataset-http-server:
+	bash utils/project_data_prepare/set_dataset_server_cfgmap.sh ${K8S_NAMESPACE} 9000
 	bash utils/project_data_prepare/http_serve.sh 9000 split_dataset/ &
 
 

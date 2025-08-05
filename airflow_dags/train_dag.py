@@ -42,7 +42,6 @@ metadata:
   name: training-pipeline-cfgmap
   namespace: {NAMESPACE}
 data:
-  original_dataset_http_server: "http://192.168.1.8:9000"
   code_repo: "https://github.com/Mahdi-Moalla/isic-skin-cancer-classification"
   dataset_folder: "dataset"
   preprocessed_dataset_folder: "preprocessed_dataset"
